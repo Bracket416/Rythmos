@@ -1,0 +1,152 @@
+using Dalamud.Game;
+using Dalamud.Game.ClientState.Buddy;
+using Dalamud.Game.Command;
+using Dalamud.Interface.Windowing;
+using Dalamud.IoC;
+using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
+using Rythmos.Handlers;
+using Rythmos.Windows;
+using System;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Rythmos;
+
+public sealed class Plugin : IDalamudPlugin
+{
+    [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
+    [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
+    [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
+    [PluginService] internal static IClientState ClientState { get; private set; } = null!;
+    [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
+    [PluginService] internal static IPluginLog Log { get; private set; } = null!;
+
+    [PluginService] internal static IChatGui Chat { get; private set; } = null!;
+
+    [PluginService] internal static IObjectTable Objects { get; private set; } = null!;
+
+    [PluginService] internal static IFramework Framework { get; private set; } = null!;
+
+    private const string CommandName = "/rythmos";
+    public Configuration Configuration { get; init; }
+
+    public readonly WindowSystem WindowSystem = new("Rythmos");
+    private ConfigWindow ConfigWindow { get; init; }
+    private MainWindow MainWindow { get; init; }
+
+    internal Task Uploading(string Name)
+    {
+        return Task.Run(async () =>
+        {
+            try
+            {
+                if (File.Exists(Characters.Rythmos_Path + $"\\Compressed\\{Name}.zip"))
+                {
+                    Networking.Progress = "Uploading";
+                    Queue.Send(File.ReadAllBytes(Characters.Rythmos_Path + $"\\Compressed\\{Name}.zip"), 1);
+                    Networking.Progress = "Upload Pack";
+                }
+                else Networking.Progress = "Pack Missing";
+            }
+            catch (Exception Error)
+            {
+                Log.Error(Error.Message);
+            }
+        });
+    }
+
+    internal Task Packing(string Name, Characters.Mod_Configuration M)
+    {
+        return Task.Run(async () =>
+        {
+            try
+            {
+                MainWindow.Packing = "Packing";
+                await Characters.Pack(Name, M);
+                MainWindow.Packing = "Pack Character";
+                //Networking.Progress = "Uploading";
+                //Networking.Send(File.ReadAllBytes(Characters.Rythmos_Path + $"\\Compressed\\{Name}.zip"), 1);
+            }
+            catch (Exception Error)
+            {
+                Log.Error(Error.Message);
+            }
+        });
+    }
+
+    public Plugin(IDalamudPluginInterface I)
+    {
+        I.Inject(this);
+        Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        Networking.F = Framework;
+        Networking.C = Configuration;
+        Customize.Log = Log;
+        Customize.Interface = I;
+        Customize.Setup(I);
+        Glamour.Log = Log;
+        Glamour.Interface = I;
+        Glamour.Setup(I);
+        var Ready = Customize.Ready ? (Glamour.Ready ? "" : "Please update/install Glamourer! If Glamourer is updated/installed, ignore this message!") : (Glamour.Ready ? "Please update/install Customize+! If Customize+ is updated/installed, ignore this message!" : "Please update/install Glamourer and Customize+! If they are updated/installed, ignore this message!");
+        if (Ready.Length > 0) Chat.PrintError("[Rythmos] " + Ready);
+        Networking.Log = Log;
+        Characters.Client = ClientState;
+        Characters.Objects = Objects;
+        Characters.Log = Log;
+        Characters.Rythmos_Path = Configuration.Path;
+        Characters.Setup(I, Chat);
+        // You might normally want to embed resources and load them from the manifest stream
+        ConfigWindow = new ConfigWindow(this);
+        MainWindow.Log = Log;
+        MainWindow = new MainWindow(this);
+        MainWindow.ClientState = ClientState;
+        //if (Objects.Length > 0) Log.Information(Objects[0].EntityId + "");
+        Framework.Update += Networking.Update;
+        Framework.Update += Characters.Update;
+
+        WindowSystem.AddWindow(ConfigWindow);
+        WindowSystem.AddWindow(MainWindow);
+
+        CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
+        {
+            HelpMessage = "A useful message to display in /xlhelp"
+        });
+
+        PluginInterface.UiBuilder.Draw += DrawUI;
+
+        // This adds a button to the plugin installer entry of this plugin which allows
+        // toggling the display status of the configuration ui
+        PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
+
+        // Adds another button doing the same but for the main ui of the plugin
+        PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
+
+        // Add a simple message to the log with level set to information
+        // Use /xllog to open the log window in-game
+        // Example Output: 00:57:54.959 | INF | [Rythmos] ===A cool log message from Sample Plugin===
+        //Log.Information($"===A cool log message from {PluginInterface.Manifest.Name}===");
+    }
+
+    public void Dispose()
+    {
+        WindowSystem.RemoveAllWindows();
+
+        ConfigWindow.Dispose();
+        MainWindow.Dispose();
+
+        CommandManager.RemoveHandler(CommandName);
+        Networking.Dispose();
+        Glamour.Dispose();
+    }
+
+    private void OnCommand(string command, string args)
+    {
+        ToggleMainUI();
+    }
+
+    private void DrawUI() => WindowSystem.Draw();
+
+    public void ToggleConfigUI() => ConfigWindow.Toggle();
+    public void ToggleMainUI() => MainWindow.Toggle();
+}
