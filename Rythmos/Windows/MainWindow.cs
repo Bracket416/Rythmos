@@ -22,6 +22,8 @@ public class MainWindow : Window, IDisposable
 
     public string Packing = "Pack Character";
 
+    public string Mini_Packing = "Mini-Pack Character";
+
     public MainWindow(Plugin P)
         : base("Rythmos###Rythmos Main", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
@@ -60,37 +62,41 @@ public class MainWindow : Window, IDisposable
                 {
                     var Add = false;
 
+                    ImGui.Spacing();
+                    ImGui.Text(Networking.Client.Connected ? "Connected" : "Connecting");
+                    ImGui.Spacing();
+                    ImGui.Checkbox("Save##Rythmos Save Path", ref Add);
+                    ImGui.SameLine();
+                    ImGui.InputText($"Path##Rythmos File", ref Path);
+                    if (Add)
+                    {
+                        if (!Directory.Exists(Path)) Directory.CreateDirectory(Path);
+                        if (!Directory.Exists(Path + "\\Mods")) Directory.CreateDirectory(Path + "\\Mods");
+                        if (!Directory.Exists(Path + "\\Compressed")) Directory.CreateDirectory(Path + "\\Compressed");
+                        Characters.Rythmos_Path = Path;
+                        P.Configuration.Path = Path;
+                        P.Configuration.Save();
+                    }
+                    if (Characters.Rythmos_Path.Length > 0)
+                    {
                         ImGui.Spacing();
-                        ImGui.Text(Networking.Client.Connected ? "Connected" : "Connecting");
-                        ImGui.Spacing();
-                        ImGui.Checkbox("Save##Rythmos Save Path", ref Add);
+                        Add = false;
+                        ImGui.Checkbox($"{Packing}##Rythmos Button", ref Add);
+                        if (Add) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name));
+                        Add = false;
                         ImGui.SameLine();
-                        ImGui.InputText($"Path##Rythmos File", ref Path);
-                        if (Add)
-                        {
-                            if (!Directory.Exists(Path)) Directory.CreateDirectory(Path);
-                            if (!Directory.Exists(Path + "\\Mods")) Directory.CreateDirectory(Path + "\\Mods");
-                            if (!Directory.Exists(Path + "\\Compressed")) Directory.CreateDirectory(Path + "\\Compressed");
-                            Characters.Rythmos_Path = Path;
-                            P.Configuration.Path = Path;
-                            P.Configuration.Save();
-                        }
-                        if (Characters.Rythmos_Path.Length > 0)
-                        {
-                            ImGui.Spacing();
-                            Add = false;
-                            ImGui.Checkbox($"{Packing}##Rythmos Button", ref Add);
-                            if (Add) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name));
-                            Add = false;
-                            ImGui.Spacing();
-                            ImGui.Checkbox($"{(Networking.Progress.Length == 0 ? "Upload Pack" : Networking.Progress)}##Rythmos Button", ref Add);
-                            if (Add) P.Uploading(Networking.Name);
-                            Add = false;
-                            var Previous = P.Configuration.Sync_Glamourer;
-                            ImGui.Spacing();
-                            ImGui.Checkbox($"Sync Glamourer##Rythmos Syncing", ref P.Configuration.Sync_Glamourer);
-                            if (Previous != P.Configuration.Sync_Glamourer) P.Configuration.Save();
-                        
+                        ImGui.Checkbox($"{Mini_Packing}##Rythmos Button", ref Add);
+                        if (Add) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name), false);
+                        Add = false;
+                        ImGui.Spacing();
+                        ImGui.Checkbox($"{(Networking.Progress.Length == 0 ? "Upload Pack" : Networking.Progress)}##Rythmos Button", ref Add);
+                        if (Add) P.Uploading(Networking.Name);
+                        Add = false;
+                        var Previous = P.Configuration.Sync_Glamourer;
+                        ImGui.Spacing();
+                        ImGui.Checkbox($"Sync Glamourer##Rythmos Syncing", ref P.Configuration.Sync_Glamourer);
+                        if (Previous != P.Configuration.Sync_Glamourer) P.Configuration.Save();
+
                     }
                 }
             }

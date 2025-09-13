@@ -50,7 +50,7 @@ namespace Rythmos.Handlers
             {
                 try
                 {
-                    var Data = Get.Invoke(Index);
+                    var Data = Get.Invoke(Index, 416);
                     if (Data.Item1 == Glamourer.Api.Enums.GlamourerApiEc.Success)
                     {
                         return JsonConvert.SerializeObject(Data.Item2, Formatting.None);

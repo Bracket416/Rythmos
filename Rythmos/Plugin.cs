@@ -57,17 +57,23 @@ public sealed class Plugin : IDalamudPlugin
         });
     }
 
-    internal Task Packing(string Name, Characters.Mod_Configuration M)
+    internal Task Packing(string Name, Characters.Mod_Configuration M, bool All = true)
     {
         return Task.Run(async () =>
         {
             try
             {
-                MainWindow.Packing = "Packing";
-                await Characters.Pack(Name, M);
-                MainWindow.Packing = "Pack Character";
-                //Networking.Progress = "Uploading";
-                //Networking.Send(File.ReadAllBytes(Characters.Rythmos_Path + $"\\Compressed\\{Name}.zip"), 1);
+                if (All)
+                {
+                    MainWindow.Packing = "Packing";
+                }
+                else MainWindow.Mini_Packing = "Mini-Packing";
+                await Characters.Pack(Name, M, All);
+                if (All)
+                {
+                    MainWindow.Packing = "Pack Character";
+                }
+                else MainWindow.Mini_Packing = "Mini-Pack Character";
             }
             catch (Exception Error)
             {

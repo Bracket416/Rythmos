@@ -267,9 +267,6 @@ namespace Rythmos.Handlers
                     if (Setter[Swap.Key] >= Mod.Priority)
                     {
                         if (!Output.ContainsKey(Swap.Key)) Output.Add(Swap.Key, Swap.Value.Item1);
-                        // I have to add depencency checking here... For example, if an outfit depends on a body mod, it should redirect to it here.
-                        // To do this, we first parse all of the mods, find the ones that *might* not make sense (by adding a flag ahead), resolve any dependency issues, and apply them.
-                        // The idea is something like this: If it has a flag, check if any path ends with it — If one does, use that as the replacement; otherwise, try using the mod path unless it doesn't exist, where we would just use an in-game path.
 
                         if (Swap.Value.Item2 && File.Exists(Path + "\\" + Swap.Value.Item1)) Output[Swap.Key] = Path + "\\" + Swap.Value.Item1;
                         Setter[Swap.Key] = Mod.Priority;
@@ -351,7 +348,7 @@ namespace Rythmos.Handlers
             //foreach (var Entry in Parse_Mod(Settings["Background Screen"])) Log.Information(Entry.ToString());
         }
 
-        public static Task Pack(string Name, Mod_Configuration M)
+        public static Task Pack(string Name, Mod_Configuration M, bool All = true)
         {
             return Task.Run(() =>
             {
@@ -360,10 +357,18 @@ namespace Rythmos.Handlers
                 {
                     using (ZipArchive A = new(B, ZipArchiveMode.Create))
                     {
-                        var Paths = new List<string>();
-                        M.Mods.ToList().ForEach(X => Paths.Add(Penumbra_Path + "\\" + X.Value.Item1));
-                        foreach (var File in Directory.EnumerateFiles(Penumbra_Path, "*", SearchOption.AllDirectories)) if (Paths.Any(X => File.StartsWith(X + "\\"))) A.CreateEntryFromFile(File, File.Substring(Penumbra_Path.Length + 1));
-                        using (StreamWriter W = new StreamWriter(A.CreateEntry("Configuration.json").Open())) W.Write(JsonConvert.SerializeObject(M, Formatting.Indented));
+                        try
+                        {
+                            var Current_Files = Get_Resources.Invoke()[0].Keys.ToList().Select(X => X.ToLower());
+                            var Paths = new List<string>();
+                            M.Mods.ToList().ForEach(X => Paths.Add(Penumbra_Path + "\\" + X.Value.Item1));
+                            foreach (var File in Directory.EnumerateFiles(Penumbra_Path, "*", SearchOption.AllDirectories)) if (Paths.Any(X => File.StartsWith(X + "\\")) && (All || Current_Files.Contains(File.ToString().ToLower()) || File.EndsWith(".json") || File.EndsWith(".pap") || File.EndsWith("sklb") || File.EndsWith("kbd") || File.EndsWith("avfx"))) A.CreateEntryFromFile(File, File.Substring(Penumbra_Path.Length + 1));
+                            using (StreamWriter W = new StreamWriter(A.CreateEntry("Configuration.json").Open())) W.Write(JsonConvert.SerializeObject(M, Formatting.Indented));
+                        }
+                        catch (Exception Error)
+                        {
+                            Log.Information($"Pack: {Error.Message}");
+                        }
                     }
                 }
             });
