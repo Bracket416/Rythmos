@@ -362,7 +362,7 @@ namespace Rythmos.Handlers
                             var Current_Files = Get_Resources.Invoke()[0].Keys.ToList().Select(X => X.ToLower());
                             var Paths = new List<string>();
                             M.Mods.ToList().ForEach(X => Paths.Add(Penumbra_Path + "\\" + X.Value.Item1));
-                            foreach (var File in Directory.EnumerateFiles(Penumbra_Path, "*", SearchOption.AllDirectories)) if (Paths.Any(X => File.StartsWith(X + "\\")) && (All || Current_Files.Contains(File.ToString().ToLower()) || File.EndsWith(".json") || File.EndsWith(".pap") || File.EndsWith("sklb") || File.EndsWith("kbd") || File.EndsWith("avfx"))) A.CreateEntryFromFile(File, File.Substring(Penumbra_Path.Length + 1));
+                            foreach (var File in Directory.EnumerateFiles(Penumbra_Path, "*", SearchOption.AllDirectories)) if (Paths.Any(X => File.StartsWith(X + "\\")) && (All || Current_Files.Contains(File.ToString().ToLower()) || File.EndsWith(".json") || File.EndsWith(".pap") || File.EndsWith(".tmb") || File.EndsWith("scd") || File.EndsWith("sklb") || File.EndsWith("kbd") || File.EndsWith("avfx"))) A.CreateEntryFromFile(File, File.Substring(Penumbra_Path.Length + 1));
                             using (StreamWriter W = new StreamWriter(A.CreateEntry("Configuration.json").Open())) W.Write(JsonConvert.SerializeObject(M, Formatting.Indented));
                         }
                         catch (Exception Error)
