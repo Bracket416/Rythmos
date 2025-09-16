@@ -92,6 +92,8 @@ namespace Rythmos.Handlers
 
         public static Dictionary<string, string> Glamours = new();
 
+        public static HashSet<string> Recustomize = new();
+
         private static List<string> Types = ["common\\", "bgcommon\\", "bg\\", "cut\\", "chara\\", "shader\\", "ui\\", "sound\\", "vfx\\", "ui_script\\", "exd\\", "game_script\\", "music\\", "sqpack_test\\", "debug\\"];
 
         public static IDataManager Data_Manager;
@@ -475,6 +477,7 @@ namespace Rythmos.Handlers
                 Entities.Clear();
                 Pets.Clear();
                 Minions.Clear();
+                List<string> Previous_People = ID_Mapping.Keys.ToList<string>();
                 foreach (var O in Objects) if (O.ObjectKind is Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player)
                     {
                         var Name = Get_Name(O.ObjectIndex);
@@ -506,6 +509,11 @@ namespace Rythmos.Handlers
                             Set_Collection(O.ObjectIndex);
                         }
                         else Set_Customize(Name);
+                        if (Recustomize.Contains(Name))
+                        {
+                            Set_Customize(Name);
+                            Recustomize.Remove(Name);
+                        }
                         Entities.Add(Name);
                         Changed = true;
                         if (!Networking.C.Friends.Contains(Name))
@@ -514,6 +522,7 @@ namespace Rythmos.Handlers
                             New_Friend = true;
                         }
                     }
+                foreach (var Person in Previous_People) if (!Entities.Contains(Person)) Recustomize.Add(Person);
                 if (New_Friend) Networking.C.Save();
             }
             catch (Exception Error)
