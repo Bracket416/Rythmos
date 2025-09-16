@@ -133,6 +133,7 @@ namespace Rythmos.Handlers
             if (!Collection_Mapping.ContainsKey(Name))
                 if (Mods.ContainsKey(Name) ? true : File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json"))
                 {
+                    if (File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") < File.GetLastWriteTime(Rythmos_Path + $"\\Compressed\\{Name}.zip")) Unpack(Name);
                     Log.Information($"Setting the collection of {Name}!");
                     Collection_Creator.Invoke(Name, Name, out var Collection_ID);
                     Collection_Mapping.Add(Name, Collection_ID);
@@ -362,7 +363,7 @@ namespace Rythmos.Handlers
                             var Current_Files = Get_Resources.Invoke()[0].Keys.ToList().Select(X => X.ToLower());
                             var Paths = new List<string>();
                             M.Mods.ToList().ForEach(X => Paths.Add(Penumbra_Path + "\\" + X.Value.Item1));
-                            foreach (var File in Directory.EnumerateFiles(Penumbra_Path, "*", SearchOption.AllDirectories)) if (Paths.Any(X => File.StartsWith(X + "\\")) && (Type == 0 ? true : Current_Files.Contains(File.ToString().ToLower()) || (Type == 2 ? false : File.EndsWith(".json") || File.EndsWith(".pap") || File.EndsWith(".tmb") || File.EndsWith("scd") || File.EndsWith("sklb") || File.EndsWith("kbd") || File.EndsWith("avfx")))) A.CreateEntryFromFile(File, File.Substring(Penumbra_Path.Length + 1));
+                            foreach (var File in Directory.EnumerateFiles(Penumbra_Path, "*", SearchOption.AllDirectories)) if (Paths.Any(X => File.StartsWith(X + "\\")) && (Type == 0 ? true : Current_Files.Contains(File.ToString().ToLower()) || File.EndsWith(".json") || (Type == 2 ? false : File.EndsWith(".pap") || File.EndsWith(".tmb") || File.EndsWith("scd") || File.EndsWith("sklb") || File.EndsWith("kbd") || File.EndsWith("avfx")))) A.CreateEntryFromFile(File, File.Substring(Penumbra_Path.Length + 1));
                             using (StreamWriter W = new StreamWriter(A.CreateEntry("Configuration.json").Open())) W.Write(JsonConvert.SerializeObject(M, Formatting.Indented));
                         }
                         catch (Exception Error)
@@ -376,7 +377,11 @@ namespace Rythmos.Handlers
         public static void Unpack(string Name)
         {
             var Zip_Path = Rythmos_Path + $"\\Compressed\\{Name}.zip";
-            if (File.Exists(Zip_Path)) ZipFile.ExtractToDirectory(Zip_Path, Rythmos_Path + $"\\Mods\\{Name}\\", true);
+            if (File.Exists(Zip_Path))
+            {
+                Directory.Delete(Rythmos_Path + $"\\Mods\\{Name}", true);
+                ZipFile.ExtractToDirectory(Zip_Path, Rythmos_Path + $"\\Mods\\{Name}\\", true);
+            }
         }
 
         public static void Load(string Name)
