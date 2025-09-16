@@ -3,9 +3,11 @@ using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using Glamourer.Api.IpcSubscribers.Legacy;
 using InteropGenerator.Runtime;
+using Lumina;
+using Lumina.Data;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Penumbra.Api.Api;
@@ -89,6 +91,10 @@ namespace Rythmos.Handlers
         private static Dictionary<string, ushort> Minions = new();
 
         public static Dictionary<string, string> Glamours = new();
+
+        private static List<string> Types = ["common\\", "bgcommon\\", "bg\\", "cut\\", "chara\\", "shader\\", "ui\\", "sound\\", "vfx\\", "ui_script\\", "exd\\", "game_script\\", "music\\", "sqpack_test\\", "debug\\"];
+
+        public static IDataManager Data_Manager;
 
         public static void Setup(IDalamudPluginInterface I, IChatGui Chat)
         {
@@ -222,7 +228,7 @@ namespace Rythmos.Handlers
             public IMC_Manipulation Manipulation;
         }
 
-        private static Tuple<string, Dictionary<string, string>> Parse_Mod(string Name, Tuple<string, int, Dictionary<string, List<string>>> Settings)
+        private static Tuple<string, Dictionary<string, string>> Parse_Mod(string Name, Tuple<string, int, Dictionary<string, List<string>>> Settings, bool Check_Files = true)
         {
             var Manipulations = new List<Tuple<int, string>>();
             var Path = Rythmos_Path + $"\\Mods\\{Name}\\" + Settings.Item1;
@@ -268,8 +274,7 @@ namespace Rythmos.Handlers
                     if (Setter[Swap.Key] >= Mod.Priority)
                     {
                         if (!Output.ContainsKey(Swap.Key)) Output.Add(Swap.Key, Swap.Value.Item1);
-
-                        if (Swap.Value.Item2 && File.Exists(Path + "\\" + Swap.Value.Item1)) Output[Swap.Key] = Path + "\\" + Swap.Value.Item1;
+                        if (Swap.Value.Item2 && (File.Exists(Path + "\\" + Swap.Value.Item1) || Types.All(X => !Swap.Value.Item1.StartsWith(X)))) Output[Swap.Key] = Path + "\\" + Swap.Value.Item1;
                         Setter[Swap.Key] = Mod.Priority;
                     }
                 }
@@ -301,6 +306,7 @@ namespace Rythmos.Handlers
                 Final_Manipulations.Add(JsonConvert.DeserializeObject(O));
             }
             //Log.Information(string.Join("\n", Final_Manipulations));
+            //foreach (var M in Final_Manipulations) Log.Information(M.ToString());
             //foreach (var Item in Output) Log.Information(Item.Key + " " + Item.Value);
             return Tuple.Create(Make(Final_Manipulations, 0), Output);
         }
@@ -403,6 +409,25 @@ namespace Rythmos.Handlers
                     Set_Customize(Name);
                     Dictionary<string, (Tuple<string, Dictionary<string, string>>, int)> Mod_Data = new();
                     foreach (var Mod in Mods[Name].Mods) Mod_Data[Mod.Key] = (Parse_Mod(Name, Mod.Value), Mod.Value.Item2);
+                    var Origins = new Dictionary<string, HashSet<string>>();
+                    foreach (var Mod in Mod_Data) foreach (var Entry in Mod.Value.Item1.Item2)
+                        {
+                            if (!Origins.ContainsKey(Entry.Value)) Origins.Add(Entry.Value, new HashSet<string>());
+                            Origins[Entry.Value].Add(Mod.Key);
+                        }
+                    foreach (var Mod in Mod_Data)
+                    {
+                        var Remove = new List<string>();
+                        foreach (var Entry in Mod.Value.Item1.Item2)
+                        {
+                            if (Types.Any(Entry.Value.StartsWith))
+                            {
+                                if (!Data_Manager.FileExists(Entry.Value.Replace("\\", "/")) && Origins[Entry.Value].Count <= 1) Remove.Add(Entry.Key);
+                            }
+                            else if (!File.Exists(Entry.Value)) Remove.Add(Entry.Key);
+                        }
+                        foreach (var Key in Remove) Mod.Value.Item1.Item2.Remove(Key);
+                    }
                     foreach (var Mod in Mod_Data) Temporary_Mod_Adder.Invoke(Mod.Key, Collection_Mapping[Name], Mod.Value.Item1.Item2, Mod.Value.Item1.Item1, Mod.Value.Item2).ToString();
                     Set_Glamour(Name, Glamours[Name] ?? string.Empty);
                     Redraw_Character(Name);

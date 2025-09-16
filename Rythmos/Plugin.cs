@@ -5,6 +5,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.System.File;
 using Rythmos.Handlers;
 using Rythmos.Windows;
 using System;
@@ -105,6 +106,7 @@ public sealed class Plugin : IDalamudPlugin
         var Ready = Customize.Ready ? (Glamour.Ready ? "" : "Please update/install Glamourer! If Glamourer is updated/installed, ignore this message!") : (Glamour.Ready ? "Please update/install Customize+! If Customize+ is updated/installed, ignore this message!" : "Please update/install Glamourer and Customize+! If they are updated/installed, ignore this message!");
         if (Ready.Length > 0) Chat.PrintError("[Rythmos] " + Ready);
         Networking.Log = Log;
+        Characters.Data_Manager = DataManager;
         Characters.Client = ClientState;
         Characters.Objects = Objects;
         Characters.Log = Log;
