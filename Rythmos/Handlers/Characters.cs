@@ -139,7 +139,7 @@ namespace Rythmos.Handlers
             if (!Collection_Mapping.ContainsKey(Name))
                 if (Mods.ContainsKey(Name) ? true : File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json"))
                 {
-                    if (File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") < File.GetLastWriteTime(Rythmos_Path + $"\\Compressed\\{Name}.zip")) Unpack(Name);
+                    if ((File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") ? File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") < File.GetLastWriteTime(Rythmos_Path + $"\\Compressed\\{Name}.zip") : true) && File.Exists(Rythmos_Path + $"\\Compressed\\{Name}.zip")) Unpack(Name);
                     Log.Information($"Setting the collection of {Name}!");
                     Collection_Creator.Invoke(Name, Name, out var Collection_ID);
                     Collection_Mapping.Add(Name, Collection_ID);
