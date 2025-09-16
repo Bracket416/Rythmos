@@ -94,5 +94,11 @@ namespace Rythmos.Handlers
                 S = null;
             }
         }
+        public static void Dispose()
+        {
+
+            S?.Dispose();
+            Signal?.Dispose();
+        }
     }
 }

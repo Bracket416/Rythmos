@@ -57,23 +57,31 @@ public sealed class Plugin : IDalamudPlugin
         });
     }
 
-    internal Task Packing(string Name, Characters.Mod_Configuration M, bool All = true)
+    internal Task Packing(string Name, Characters.Mod_Configuration M, uint Type = 0)
     {
         return Task.Run(async () =>
         {
             try
             {
-                if (All)
+                if (Type == 0)
                 {
                     MainWindow.Packing = "Packing";
                 }
-                else MainWindow.Mini_Packing = "Mini-Packing";
-                await Characters.Pack(Name, M, All);
-                if (All)
+                else if (Type == 1)
                 {
-                    MainWindow.Packing = "Pack Character";
+                    MainWindow.Mini_Packing = "Mini-Packing";
                 }
-                else MainWindow.Mini_Packing = "Mini-Pack Character";
+                else if (Type == 2) MainWindow.Micro_Packing = "Micro-Packing";
+                await Characters.Pack(Name, M, Type);
+                if (Type == 0)
+                {
+                    MainWindow.Packing = "Pack";
+                }
+                else if (Type == 1)
+                {
+                    MainWindow.Mini_Packing = "Mini-Pack";
+                }
+                else if (Type == 2) MainWindow.Micro_Packing = "Micro-Pack";
             }
             catch (Exception Error)
             {
@@ -144,6 +152,7 @@ public sealed class Plugin : IDalamudPlugin
         CommandManager.RemoveHandler(CommandName);
         Networking.Dispose();
         Glamour.Dispose();
+        Queue.Dispose();
     }
 
     private void OnCommand(string command, string args)

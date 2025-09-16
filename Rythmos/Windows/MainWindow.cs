@@ -20,9 +20,11 @@ public class MainWindow : Window, IDisposable
 
     public string Path = "";
 
-    public string Packing = "Pack Character";
+    public string Packing = "Pack";
 
-    public string Mini_Packing = "Mini-Pack Character";
+    public string Mini_Packing = "Mini-Pack";
+
+    public string Micro_Packing = "Micro-Pack";
 
     public MainWindow(Plugin P)
         : base("Rythmos###Rythmos Main", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
@@ -86,7 +88,11 @@ public class MainWindow : Window, IDisposable
                         Add = false;
                         ImGui.SameLine();
                         ImGui.Checkbox($"{Mini_Packing}##Rythmos Button", ref Add);
-                        if (Add) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name), false);
+                        if (Add) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name), 1);
+                        Add = false;
+                        ImGui.SameLine();
+                        ImGui.Checkbox($"{Micro_Packing}##Rythmos Button", ref Add);
+                        if (Add) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name), 2);
                         Add = false;
                         ImGui.Spacing();
                         ImGui.Checkbox($"{(Networking.Progress.Length == 0 ? "Upload Pack" : Networking.Progress)}##Rythmos Button", ref Add);
