@@ -385,7 +385,7 @@ namespace Rythmos.Handlers
             var Zip_Path = Rythmos_Path + $"\\Compressed\\{Name}.zip";
             if (File.Exists(Zip_Path))
             {
-                Directory.Delete(Rythmos_Path + $"\\Mods\\{Name}", true);
+                if (Directory.Exists(Rythmos_Path + $"\\Mods\\{Name}")) Directory.Delete(Rythmos_Path + $"\\Mods\\{Name}", true);
                 ZipFile.ExtractToDirectory(Zip_Path, Rythmos_Path + $"\\Mods\\{Name}\\", true);
             }
         }
