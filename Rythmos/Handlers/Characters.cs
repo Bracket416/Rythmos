@@ -1,16 +1,10 @@
 using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects.SubKinds;
-using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using InteropGenerator.Runtime;
-using Lumina;
-using Lumina.Data;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Penumbra.Api.Api;
 using Penumbra.Api.IpcSubscribers;
 using System;
 using System.Collections.Generic;
@@ -18,12 +12,8 @@ using System.ComponentModel;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 namespace Rythmos.Handlers
 {
     unsafe internal class Characters
@@ -139,6 +129,7 @@ namespace Rythmos.Handlers
         {
             var Name = Get_Name(ID);
             if (!Collection_Mapping.ContainsKey(Name))
+            {
                 if (Mods.ContainsKey(Name) ? true : File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json"))
                 {
                     if ((File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") ? File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") < File.GetLastWriteTime(Rythmos_Path + $"\\Compressed\\{Name}.zip") : true) && File.Exists(Rythmos_Path + $"\\Compressed\\{Name}.zip")) Unpack(Name);
@@ -151,6 +142,8 @@ namespace Rythmos.Handlers
                     Load(Name);
                     Enable(Name);
                 }
+            }
+            else if (Recustomize.Contains(Name)) Log.Information("Reassignment: " + Collection_Assigner.Invoke(Collection_Mapping[Name], (int)ID_Mapping[Name]).ToString());
         }
 
         private static void Remove_Collection(string Name)
@@ -389,6 +382,7 @@ namespace Rythmos.Handlers
             {
                 if (Directory.Exists(Rythmos_Path + $"\\Mods\\{Name}")) Directory.Delete(Rythmos_Path + $"\\Mods\\{Name}", true);
                 ZipFile.ExtractToDirectory(Zip_Path, Rythmos_Path + $"\\Mods\\{Name}\\", true);
+                File.SetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json", DateTime.Now);
             }
         }
 
@@ -487,11 +481,6 @@ namespace Rythmos.Handlers
                                 {
                                     Glamour.Unlock(ID_Mapping[Name]);
                                     Glamour.Revert(ID_Mapping[Name]);
-                                    if (Collection_Mapping.ContainsKey(Name))
-                                    {
-                                        Collection_Remover.Invoke(Collection_Mapping[Name]);
-                                        Collection_Mapping.Remove(Name);
-                                    }
                                     ID_Mapping[Name] = O.ObjectIndex;
                                 }
                         ID_Mapping[Name] = O.ObjectIndex;
@@ -552,11 +541,6 @@ namespace Rythmos.Handlers
                                     Log.Information($"The object index of {Key} has become that of {Name}.");
                                     Glamour.Unlock(O.ObjectIndex);
                                     Glamour.Revert(O.ObjectIndex);
-                                    if (Collection_Mapping.ContainsKey(Key))
-                                    {
-                                        Collection_Remover.Invoke(Collection_Mapping[Key]);
-                                        Collection_Mapping.Remove(Key);
-                                    }
                                     ID_Mapping.Remove(Key);
                                 }
                         }
