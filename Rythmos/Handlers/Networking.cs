@@ -207,6 +207,7 @@ namespace Rythmos.Handlers
                 Log.Information("Connecting!");
                 try
                 {
+                    Downloading = false;
                     Cancel.Cancel();
                     Cancel.Dispose();
                     Getter = null;
