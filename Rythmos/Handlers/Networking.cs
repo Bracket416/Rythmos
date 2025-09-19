@@ -135,17 +135,24 @@ namespace Rythmos.Handlers
                                                     var Output = new byte[Size - ((ulong)Name_Offset)];
                                                     for (ulong I = 0; I < (ulong)Output.Length; I++) Output[I] = Total[I + 6 + ((ulong)Name_Offset)];
                                                     File.WriteAllBytes(Characters.Rythmos_Path + "\\Compressed\\" + File_Name + ".zip", Output); // This should be a stream in the future for large file sizes.
-                                                    Characters.Unpack(File_Name);
-                                                    F.RunOnFrameworkThread(() =>
+                                                    try
                                                     {
-                                                        if (Characters.ID_Mapping.ContainsKey(File_Name))
+                                                        Characters.Unpack(File_Name);
+                                                        F.RunOnFrameworkThread(() =>
                                                         {
-                                                            Characters.Set_Collection(Characters.ID_Mapping[File_Name]);
-                                                            Characters.Load(File_Name);
-                                                            Characters.Enable(File_Name);
-                                                        }
-                                                        Characters.Outdated.Remove(File_Name);
-                                                    });
+                                                            if (Characters.ID_Mapping.ContainsKey(File_Name))
+                                                            {
+                                                                Characters.Set_Collection(Characters.ID_Mapping[File_Name]);
+                                                                Characters.Load(File_Name);
+                                                                Characters.Enable(File_Name);
+                                                            }
+                                                            Characters.Outdated.Remove(File_Name);
+                                                        });
+                                                    }
+                                                    catch (Exception Error)
+                                                    {
+                                                        Log.Error("Request Unpacking: " + Error.Message);
+                                                    }
                                                     Downloading = false;
                                                 }
                                                 else Log.Warning($"{Flag} is an unknown flag.");
