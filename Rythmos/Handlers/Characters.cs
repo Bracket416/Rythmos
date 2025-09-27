@@ -3,6 +3,9 @@ using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.UI.Info;
+using Lumina.Excel.Sheets;
+using Microsoft.VisualBasic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Penumbra.Api.IpcSubscribers;
@@ -26,6 +29,8 @@ namespace Rythmos.Handlers
 
         private static long T = 0;
 
+        private static long Background_T = 0;
+
         public class Mod_Configuration
         {
             public string Bones = "";
@@ -47,6 +52,8 @@ namespace Rythmos.Handlers
         public static Dictionary<string, ushort> ID_Mapping = new();
 
         public static IPluginLog Log;
+
+        public static IPartyList Party;
 
         private static CreateTemporaryCollection Collection_Creator;
 
@@ -88,6 +95,8 @@ namespace Rythmos.Handlers
 
         public static IDataManager Data_Manager;
 
+        public static Guid Default = new();
+
         public static void Setup(IDalamudPluginInterface I, IChatGui Chat)
         {
             try
@@ -125,25 +134,41 @@ namespace Rythmos.Handlers
             else return "";
         }
 
-        public static void Set_Collection(ushort ID)
+        public static bool Create_Collection(string Name)
+        {
+            if (Mods.ContainsKey(Name) ? true : File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json"))
+            {
+                if ((File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") ? File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") < File.GetLastWriteTime(Rythmos_Path + $"\\Compressed\\{Name}.zip") : true) && File.Exists(Rythmos_Path + $"\\Compressed\\{Name}.zip")) Unpack(Name);
+                Log.Information($"Creating the collection of {Name}!");
+                Collection_Creator.Invoke(Name, Name, out var Collection_ID);
+                Collection_Mapping.Add(Name, Collection_ID);
+                Load(Name);
+                Prepare(Name);
+                return true;
+            }
+            else return false;
+        }
+
+        public static bool Set_Collection(ushort ID)
         {
             var Name = Get_Name(ID);
-            if (!Collection_Mapping.ContainsKey(Name))
+            if (!Collection_Mapping.ContainsKey(Name) || !ID_Mapping.ContainsKey(Name))
             {
-                if (Mods.ContainsKey(Name) ? true : File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json"))
+                if (!ID_Mapping.ContainsKey(Name)) ID_Mapping.Add(Name, ID);
+                if (!Collection_Mapping.ContainsKey(Name)) Create_Collection(Name);
+                if (Collection_Mapping.ContainsKey(Name))
                 {
-                    if ((File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") ? File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") < File.GetLastWriteTime(Rythmos_Path + $"\\Compressed\\{Name}.zip") : true) && File.Exists(Rythmos_Path + $"\\Compressed\\{Name}.zip")) Unpack(Name);
-                    Log.Information($"Setting the collection of {Name}!");
-                    Collection_Creator.Invoke(Name, Name, out var Collection_ID);
-                    Collection_Mapping.Add(Name, Collection_ID);
-                    var Found = Collection_Getter.Invoke(ID_Mapping[Name]);
-                    Log.Information(Found + " = " + Collection_Mapping[Name]);
-                    Log.Information("Assignment: " + Collection_Assigner.Invoke(Collection_Mapping[Name], (int)ID_Mapping[Name]).ToString());
-                    Load(Name);
+                    Log.Information($"Assignment of {Name}: " + Collection_Assigner.Invoke(Collection_Mapping[Name], (int)ID_Mapping[Name]).ToString());
                     Enable(Name);
+                    return true;
                 }
             }
-            else if (Recustomize.Contains(Name)) Log.Information("Reassignment: " + Collection_Assigner.Invoke(Collection_Mapping[Name], (int)ID_Mapping[Name]).ToString());
+            else if (Recustomize.Contains(Name))
+            {
+                Log.Information($"Reassignment of {Name}: " + Collection_Assigner.Invoke(Collection_Mapping[Name], (int)ID_Mapping[Name]).ToString());
+                return true;
+            }
+            return false;
         }
 
         private static void Remove_Collection(string Name)
@@ -158,7 +183,11 @@ namespace Rythmos.Handlers
         public static void Set_Customize(string Name)
         {
             if (!Mods.ContainsKey(Name)) Load(Name);
-            if (Mods.ContainsKey(Name)) if (Mods[Name].Bones != null) if (Mods[Name].Bones.Length > 0) Customize.Set_Bones(ID_Mapping[Name], Mods[Name].Bones.ToString());
+            if (Mods.ContainsKey(Name)) if (Mods[Name].Bones != null) if (Mods[Name].Bones.Length > 0)
+                    {
+                        Customize.Set_Bones(ID_Mapping[Name], Mods[Name].Bones.ToString());
+                        Log.Information("Customizing " + Name + "!");
+                    }
         }
         private class Modification
         {
@@ -396,35 +425,39 @@ namespace Rythmos.Handlers
             }
         }
 
-        public static void Enable(string Name)
+        public static void Prepare(string Name)
         {
             if (Collection_Mapping.ContainsKey(Name) && Mods.ContainsKey(Name))
+            {
+                Dictionary<string, (Tuple<string, Dictionary<string, string>>, int)> Mod_Data = new();
+                foreach (var Mod in Mods[Name].Mods) Mod_Data[Mod.Key] = (Parse_Mod(Name, Mod.Value), Mod.Value.Item2);
+                var Origins = new Dictionary<string, HashSet<string>>();
+                foreach (var Mod in Mod_Data) foreach (var Entry in Mod.Value.Item1.Item2)
+                    {
+                        if (!Origins.ContainsKey(Entry.Value)) Origins.Add(Entry.Value, new HashSet<string>());
+                        Origins[Entry.Value].Add(Mod.Key);
+                    }
+                foreach (var Mod in Mod_Data)
+                {
+                    var Remove = new List<string>();
+                    foreach (var Entry in Mod.Value.Item1.Item2) if (Types.Any(Entry.Value.StartsWith))
+                        {
+                            if (!Data_Manager.FileExists(Entry.Value.Replace("\\", "/")) && Origins[Entry.Value].Count <= 1) Remove.Add(Entry.Key);
+                        }
+                        else if (!File.Exists(Entry.Value)) Remove.Add(Entry.Key);
+                    foreach (var Key in Remove) Mod.Value.Item1.Item2.Remove(Key);
+                }
+                foreach (var Mod in Mod_Data) Temporary_Mod_Adder.Invoke(Mod.Key, Collection_Mapping[Name], Mod.Value.Item1.Item2, Mod.Value.Item1.Item1, Mod.Value.Item2).ToString();
+            }
+        }
+
+        public static void Enable(string Name)
+        {
+            if (Collection_Mapping.ContainsKey(Name) && Mods.ContainsKey(Name) && ID_Mapping.ContainsKey(Name))
             {
                 try
                 {
                     Set_Customize(Name);
-                    Dictionary<string, (Tuple<string, Dictionary<string, string>>, int)> Mod_Data = new();
-                    foreach (var Mod in Mods[Name].Mods) Mod_Data[Mod.Key] = (Parse_Mod(Name, Mod.Value), Mod.Value.Item2);
-                    var Origins = new Dictionary<string, HashSet<string>>();
-                    foreach (var Mod in Mod_Data) foreach (var Entry in Mod.Value.Item1.Item2)
-                        {
-                            if (!Origins.ContainsKey(Entry.Value)) Origins.Add(Entry.Value, new HashSet<string>());
-                            Origins[Entry.Value].Add(Mod.Key);
-                        }
-                    foreach (var Mod in Mod_Data)
-                    {
-                        var Remove = new List<string>();
-                        foreach (var Entry in Mod.Value.Item1.Item2)
-                        {
-                            if (Types.Any(Entry.Value.StartsWith))
-                            {
-                                if (!Data_Manager.FileExists(Entry.Value.Replace("\\", "/")) && Origins[Entry.Value].Count <= 1) Remove.Add(Entry.Key);
-                            }
-                            else if (!File.Exists(Entry.Value)) Remove.Add(Entry.Key);
-                        }
-                        foreach (var Key in Remove) Mod.Value.Item1.Item2.Remove(Key);
-                    }
-                    foreach (var Mod in Mod_Data) Temporary_Mod_Adder.Invoke(Mod.Key, Collection_Mapping[Name], Mod.Value.Item1.Item2, Mod.Value.Item1.Item1, Mod.Value.Item2).ToString();
                     Set_Glamour(Name, Glamours[Name] ?? string.Empty);
                     Redraw_Character(Name);
                     if (Pets.ContainsKey(Name)) Redraw.Invoke(Pets[Name]);
@@ -483,7 +516,6 @@ namespace Rythmos.Handlers
                                     Glamour.Revert(ID_Mapping[Name]);
                                     ID_Mapping[Name] = O.ObjectIndex;
                                 }
-                        ID_Mapping[Name] = O.ObjectIndex;
                         foreach (var I in Objects) if (I.ObjectKind is Dalamud.Game.ClientState.Objects.Enums.ObjectKind.BattleNpc || I.ObjectKind is Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Companion) if (I.OwnerId == O.GameObjectId)
                                 {
                                     if (I.ObjectKind is Dalamud.Game.ClientState.Objects.Enums.ObjectKind.BattleNpc)
@@ -493,18 +525,23 @@ namespace Rythmos.Handlers
                                     else Minions[Name] = I.ObjectIndex;
                                     break;
                                 }
-                        if (Glamour.Ready)
+                        var Character_Changed = false;
+                        if (!Glamour.Ready)
                         {
-                            Set_Collection(O.ObjectIndex);
+                            ID_Mapping[Name] = O.ObjectIndex;
+                            Set_Customize(Name);
+                            Character_Changed = true;
                         }
-                        else Set_Customize(Name);
+                        else Character_Changed = Set_Collection(O.ObjectIndex);
                         if (Recustomize.Contains(Name))
                         {
+                            ID_Mapping[Name] = O.ObjectIndex;
                             Set_Customize(Name);
+                            Character_Changed = true;
                             Recustomize.Remove(Name);
                         }
+                        if (Mods.ContainsKey(Name) && Character_Changed) Changed = true;
                         Entities.Add(Name);
-                        Changed = true;
                         if (!Networking.C.Friends.Contains(Name))
                         {
                             Networking.C.Friends.Add(Name);
@@ -529,6 +566,7 @@ namespace Rythmos.Handlers
                 {
                     foreach (var Key in Collection_Mapping.Keys.AsEnumerable<string>()) Remove_Collection(Key);
                     T = 0;
+                    Background_T = 0;
                 }
                 else if (Client.LocalPlayer is not null)
                 {
@@ -545,6 +583,26 @@ namespace Rythmos.Handlers
                                 }
                         }
                     var New_T = TimeProvider.System.GetTimestamp();
+                    if (New_T - Background_T > 10000000)
+                    {
+                        var Proxy = InfoProxyCrossRealm.Instance();
+                        var Party_Members = new List<string>();
+                        if (Proxy->IsInCrossRealmParty)
+                        {
+                            Party_Members = Proxy->CrossRealmGroups[Proxy->LocalPlayerGroupIndex].GroupMembers.ToArray().Where(X => X.NameString.Length > 0).Select(X => X.NameString + " " + Data_Manager.GetExcelSheet<World>().GetRow((uint)X.HomeWorld).Name.ToString()).ToList();
+                        }
+                        else foreach (var Member in Party) Party_Members.Add(Member.Name + " " + Member.World.Value.Name.ExtractText());
+                        foreach (var Friend in Party_Members) if (Networking.C.Friends.Contains(Friend))
+                            {
+                                var Friend_Path = Rythmos_Path + "\\Compressed\\" + Friend + ".zip";
+                                if (File.Exists(Friend_Path) && !Collection_Mapping.ContainsKey(Friend))
+                                {
+                                    Background_T = New_T;
+                                    Create_Collection(Friend);
+                                    break;
+                                }
+                            }
+                    }
                     if (New_T - T > 30000000)
                     {
                         T = New_T;

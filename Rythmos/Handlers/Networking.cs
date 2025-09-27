@@ -1,21 +1,13 @@
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using FFXIVClientStructs.FFXIV.Common.Lua;
-using Glamourer.Api.Enums;
 using System;
-using System.Collections.Concurrent;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static FFXIVClientStructs.FFXIV.Component.GUI.AtkTimer.Delegates;
 using static System.Text.Encoding;
 
 namespace Rythmos.Handlers

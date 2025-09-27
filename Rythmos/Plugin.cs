@@ -23,12 +23,10 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
-
     [PluginService] internal static IChatGui Chat { get; private set; } = null!;
-
     [PluginService] internal static IObjectTable Objects { get; private set; } = null!;
-
     [PluginService] internal static IFramework Framework { get; private set; } = null!;
+    [PluginService] internal static IPartyList Party { get; private set; } = null!;
 
     private const string CommandName = "/rythmos";
     public Configuration Configuration { get; init; }
@@ -110,6 +108,7 @@ public sealed class Plugin : IDalamudPlugin
         Characters.Client = ClientState;
         Characters.Objects = Objects;
         Characters.Log = Log;
+        Characters.Party = Party;
         Characters.Rythmos_Path = Configuration.Path;
         Characters.Setup(I, Chat);
         // You might normally want to embed resources and load them from the manifest stream
