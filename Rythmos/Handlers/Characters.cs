@@ -611,14 +611,14 @@ namespace Rythmos.Handlers
                         T = New_T;
                         if (!Update_Characters()) T -= 30000000;
                     }
-                    if (New_T - Request_T > 5000000)
+                    if (New_T - Request_T > 10000000)
                     {
                         if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading) foreach (var Old in Outdated) if (Entities.Contains(Old))
                                 {
+                                    Request_T = New_T;
                                     Queue.Send(Encoding.UTF8.GetBytes(Old), 2);
                                     break;
                                 }
-                        Request_T = New_T;
                     }
                 }
             }
