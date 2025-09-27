@@ -136,6 +136,7 @@ namespace Rythmos.Handlers
                                                             {
                                                                 Characters.Set_Collection(Characters.ID_Mapping[File_Name]);
                                                                 Characters.Load(File_Name);
+                                                                Characters.Prepare(File_Name);
                                                                 Characters.Enable(File_Name);
                                                             }
                                                             Characters.Outdated.Remove(File_Name);
