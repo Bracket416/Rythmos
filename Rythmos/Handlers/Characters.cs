@@ -31,6 +31,8 @@ namespace Rythmos.Handlers
 
         private static long Background_T = 0;
 
+        private static long Request_T = 0;
+
         public class Mod_Configuration
         {
             public string Bones = "";
@@ -567,6 +569,7 @@ namespace Rythmos.Handlers
                     foreach (var Key in Collection_Mapping.Keys.AsEnumerable<string>()) Remove_Collection(Key);
                     T = 0;
                     Background_T = 0;
+                    Request_T = 0;
                 }
                 else if (Client.LocalPlayer is not null)
                 {
@@ -607,11 +610,15 @@ namespace Rythmos.Handlers
                     {
                         T = New_T;
                         if (!Update_Characters()) T -= 30000000;
-                        if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat) if (Outdated.Count > 0 && !Networking.Downloading) foreach (var Old in Outdated) if (Entities.Contains(Old))
-                                    {
-                                        Queue.Send(Encoding.UTF8.GetBytes(Old), 2);
-                                        break;
-                                    }
+                    }
+                    if (New_T - Request_T > 5000000)
+                    {
+                        if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading) foreach (var Old in Outdated) if (Entities.Contains(Old))
+                                {
+                                    Queue.Send(Encoding.UTF8.GetBytes(Old), 2);
+                                    break;
+                                }
+                        Request_T = New_T;
                     }
                 }
             }
