@@ -65,7 +65,7 @@ public class MainWindow : Window, IDisposable
                     var Add = false;
 
                     ImGui.Spacing();
-                    ImGui.Text(Networking.Client.Connected ? "Connected" : "Connecting");
+                    ImGui.Text((Networking.Client.Connected ? "Connected" : "Connecting") + Networking.Download_Progress);
                     ImGui.Spacing();
                     ImGui.Checkbox("Save##Rythmos Save Path", ref Add);
                     ImGui.SameLine();

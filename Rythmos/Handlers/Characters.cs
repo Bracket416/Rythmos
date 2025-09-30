@@ -8,6 +8,7 @@ using Lumina.Excel.Sheets;
 using Microsoft.VisualBasic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Penumbra.Api.Helpers;
 using Penumbra.Api.IpcSubscribers;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,9 @@ using System.ComponentModel;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime;
 using System.Text;
+using System.Text.Unicode;
 using System.Threading.Tasks;
 namespace Rythmos.Handlers
 {
@@ -35,16 +38,20 @@ namespace Rythmos.Handlers
 
         public class Mod_Configuration
         {
+
+            public string Meta = "";
+
             public string Bones = "";
 
             public string Glamour = "";
 
             public Dictionary<string, Tuple<string, int, Dictionary<string, List<string>>>> Mods = new();
 
-            public Mod_Configuration(string Bones, string Glamour, Dictionary<string, Tuple<string, int, Dictionary<string, List<string>>>> Mods)
+            public Mod_Configuration(string Bones, string Glamour, string Meta, Dictionary<string, Tuple<string, int, Dictionary<string, List<string>>>> Mods)
             {
                 this.Bones = Bones;
                 this.Glamour = Glamour;
+                this.Meta = Meta;
                 this.Mods = Mods;
             }
         }
@@ -76,6 +83,8 @@ namespace Rythmos.Handlers
         private static GetMetaManipulations Get_Meta;
 
         public static GetPlayerResourcePaths Get_Resources;
+
+        public static GetPlayerResourceTrees Get_Trees;
 
         public static string Penumbra_Path = "";
 
@@ -113,6 +122,7 @@ namespace Rythmos.Handlers
                 Get_Meta = new GetMetaManipulations(I);
                 Collection_Remover = new DeleteTemporaryCollection(I);
                 Get_Resources = new GetPlayerResourcePaths(I);
+                Get_Trees = new GetPlayerResourceTrees(I);
                 Penumbra_Path = new GetModDirectory(I).Invoke();
             }
             catch (Exception Error)
@@ -372,13 +382,19 @@ namespace Rythmos.Handlers
                                 Log.Information($"The collection is {C}.");
                                 var S = Settings_Getter.Invoke(C);
                                 foreach (var Mod in S.Item2.Keys) if (S.Item2[Mod].Item1) Settings.Add(Mod, Tuple.Create(Mod, S.Item2[Mod].Item2, S.Item2[Mod].Item3));
-                                return new Mod_Configuration(Customize.Pack_Bones(O.ObjectIndex), Glamour.Pack(O.ObjectIndex), Settings);
+                                return new Mod_Configuration(Customize.Pack_Bones(O.ObjectIndex), Glamour.Pack(O.ObjectIndex), Get_Meta.Invoke(O.ObjectIndex), Settings);
                             }
                         }
-                return new Mod_Configuration("", "", Settings);
+                return new Mod_Configuration("", "", "", Settings);
             }
-            return new Mod_Configuration("", "", Settings);
-            //foreach (var Entry in Parse_Mod(Settings["Background Screen"])) Log.Information(Entry.ToString());
+            return new Mod_Configuration("", "", "", Settings);
+        }
+
+        public static List<string> Traverse(ResourceNodeDto A)
+        {
+            List<string> Output = [A.ActualPath];
+            foreach (var B in A.Children) Output.Add(B.ActualPath);
+            return Output;
         }
 
         public static Task Pack(string Name, Mod_Configuration M, uint Type = 0)
@@ -392,9 +408,71 @@ namespace Rythmos.Handlers
                     {
                         try
                         {
-                            var Current_Files = Get_Resources.Invoke()[0].Keys.ToList().Select(X => X.ToLower());
+                            var Current_Files = Get_Resources.Invoke()[0].Keys.ToList().Select(X => X.ToLower()).ToList();
                             var Paths = new List<string>();
                             M.Mods.ToList().ForEach(X => Paths.Add(Penumbra_Path + "\\" + X.Value.Item1));
+                            List<string> Required_Materials = [];
+                            List<KeyValuePair<string, string>> Materials = [];
+                            Dictionary<string, List<string>> Textures = new();
+                            foreach (var Penumbra_File in M.Mods.ToList())
+                            {
+                                var Path = Penumbra_Path + "\\" + Penumbra_File.Value.Item1;
+                                var Default = JsonConvert.DeserializeObject<Modification>(File.ReadAllText(Path + "\\default_mod.json"));
+                                var Mods = new List<Modification> { Default };
+                                foreach (var F in Directory.GetFiles(Path).ToList().FindAll(X => X.StartsWith($"{Path}\\group_")))
+                                {
+                                    var Data = JsonConvert.DeserializeObject<Group>(File.ReadAllText(F));
+                                    if (Data.Type != "Imc") foreach (var D in Data.Options) if (Penumbra_File.Value.Item3[Data.Name].Contains(D.Name)) Mods.Add(D);
+                                }
+                                var Output = new Dictionary<string, string>();
+                                var Setter = new Dictionary<string, int>();
+                                foreach (var Mod in Mods) foreach (var Swap in Mod.Merge())
+                                    {
+                                        if (!Setter.ContainsKey(Swap.Key)) Setter.Add(Swap.Key, Mod.Priority);
+                                        if (Setter[Swap.Key] >= Mod.Priority)
+                                        {
+                                            if (!Output.ContainsKey(Swap.Key)) Output.Add(Swap.Key, Swap.Value.Item1);
+                                            if (Swap.Value.Item2 && (File.Exists(Path + "\\" + Swap.Value.Item1) || Types.All(X => !Swap.Value.Item1.StartsWith(X)))) Output[Swap.Key] = Path + "\\" + Swap.Value.Item1;
+                                            Setter[Swap.Key] = Mod.Priority;
+                                        }
+                                    }
+                                foreach (var O in Output) if (O.Value.EndsWith(".mtrl"))
+                                    {
+                                        Materials.Add(O);
+                                        Current_Files.Add(O.Value.ToLower());
+                                    }
+                                    else if (O.Value.EndsWith(".tex"))
+                                    {
+                                        if (!Textures.ContainsKey(O.Key.ToLower())) Textures.Add(O.Key.ToLower(), []);
+                                        Textures[O.Key.ToLower()].Add(O.Value.ToLower());
+                                    }
+                                    else if (O.Value.EndsWith(".mdl"))
+                                    {
+                                        var Parsed_Materials = string.Join("/", File.ReadAllText(O.Value).Split("/").Skip(1)).Split(".mtrl").SkipLast(1).Select(X => (X + ".mtrl").Split("/")[^1]);
+                                        Log.Information("Model: " + O.Value);
+                                        foreach (var Material in Parsed_Materials) Required_Materials.Add(Material.ToLower());
+                                    }
+                            }
+                            foreach (var O in Materials) if (Required_Materials.Any(X => O.Key.ToLower().EndsWith(X)))
+                                {
+                                    var Required_Textures = File.ReadAllText(O.Value, Encoding.UTF8).Split(".tex").SkipLast(1).Select(X => X + ".tex");
+                                    foreach (var Texture in Required_Textures)
+                                    {
+                                        var Start = 0;
+                                        for (var I = 0; I < Texture.Length; I++)
+                                        {
+                                            var C = Texture.Substring(I + 1).ToCharArray().Select(X => (byte)X);
+                                            if (((byte)Texture[I]) == 0) Start = I + 1;
+                                        }
+                                        var Texture_Name = Texture.Substring(Start);
+                                        if (Textures.ContainsKey(Texture_Name.ToLower()))
+                                        {
+                                            Log.Information("Found " + Texture_Name + $", which should be replaced by the following:\n- " + string.Join("\n- ", Textures[Texture_Name.ToLower()]));
+                                            foreach (var Required_File in Textures[Texture_Name.ToLower()]) Current_Files.Add(Required_File);
+                                        }
+                                    }
+                                }
+                            foreach (var F in Current_Files) Log.Information(F);
                             foreach (var File in Directory.EnumerateFiles(Penumbra_Path, "*", SearchOption.AllDirectories)) if (Paths.Any(X => File.StartsWith(X + "\\")) && (Type == 0 ? true : Current_Files.Contains(File.ToString().ToLower()) || File.EndsWith(".json") || (Type == 2 ? false : File.EndsWith(".pap") || File.EndsWith(".tmb") || File.EndsWith("scd") || File.EndsWith("sklb") || File.EndsWith("kbd") || File.EndsWith("avfx")))) A.CreateEntryFromFile(File, File.Substring(Penumbra_Path.Length + 1));
                             using (StreamWriter W = new StreamWriter(A.CreateEntry("Configuration.json").Open())) W.Write(JsonConvert.SerializeObject(M, Formatting.Indented));
                         }
@@ -449,7 +527,8 @@ namespace Rythmos.Handlers
                         else if (!File.Exists(Entry.Value)) Remove.Add(Entry.Key);
                     foreach (var Key in Remove) Mod.Value.Item1.Item2.Remove(Key);
                 }
-                foreach (var Mod in Mod_Data) Temporary_Mod_Adder.Invoke(Mod.Key, Collection_Mapping[Name], Mod.Value.Item1.Item2, Mod.Value.Item1.Item1, Mod.Value.Item2).ToString();
+                foreach (var Mod in Mod_Data) Temporary_Mod_Adder.Invoke(Mod.Key, Collection_Mapping[Name], Mod.Value.Item1.Item2, "", Mod.Value.Item2).ToString();
+                Temporary_Mod_Adder.Invoke(Name + " Manipulations", Collection_Mapping[Name], new Dictionary<string, string> { }, Mods[Name].Meta, 50);
             }
         }
 

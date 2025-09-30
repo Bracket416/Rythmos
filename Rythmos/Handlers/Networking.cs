@@ -36,6 +36,8 @@ namespace Rythmos.Handlers
 
         public static bool Downloading = false;
 
+        public static string Download_Progress = "";
+
         private static Task Getter;
 
         private static CancellationTokenSource Cancel = new();
@@ -68,7 +70,8 @@ namespace Rythmos.Handlers
                             {
                                 var Size = (ulong)(Total[0] * Math.Pow(256, 4) + Total[1] * Math.Pow(256, 3) + Total[2] * Math.Pow(256, 2) + Total[3] * 256 + Total[4]);
                                 if (Total[5] >= 220) Downloading = true;
-                                if (Downloading) Log.Information("Download: " + (100 * Offset / Size) + "%");
+                                if (Downloading && Size > (ulong)(Total[5] - 220)) Download_Progress = $" — Downloading {UTF8.GetString(Total.Skip(6).Take(Total[5] - 220).ToArray())} (" + (100 * Offset / Size) + "%)";
+                                //if (Downloading) Log.Information("Download: " + (100 * Offset / Size) + "%");
                                 while (Offset >= Size + 6) // The data has been totally processed.
                                 {
                                     var Flag = Total[5];
@@ -147,6 +150,7 @@ namespace Rythmos.Handlers
                                                         Log.Error("Request Unpacking: " + Error.Message);
                                                     }
                                                     Downloading = false;
+                                                    Download_Progress = "";
                                                 }
                                                 else Log.Warning($"{Flag} is an unknown flag.");
                                                 break;
