@@ -448,8 +448,7 @@ namespace Rythmos.Handlers
                                     }
                                     else if (O.Value.EndsWith(".mdl"))
                                     {
-                                        var Parsed_Materials = string.Join("/", File.ReadAllText(O.Value).Split("/").Skip(1)).Split(".mtrl").SkipLast(1).Select(X => (X + ".mtrl").Split("/")[^1]);
-                                        Log.Information("Model: " + O.Value);
+                                        var Parsed_Materials = string.Join("/", File.ReadAllText(O.Value).Split("/").Skip(1)).Split(".mtrl").SkipLast(1).Select(X => (X + ".mtrl").Split("/")[^1]); // Depending on "Type," only Current_Files should affect this.
                                         foreach (var Material in Parsed_Materials) Required_Materials.Add(Material.ToLower());
                                     }
                             }
@@ -512,6 +511,7 @@ namespace Rythmos.Handlers
                 Dictionary<string, (Tuple<string, Dictionary<string, string>>, int)> Mod_Data = new();
                 foreach (var Mod in Mods[Name].Mods) Mod_Data[Mod.Key] = (Parse_Mod(Name, Mod.Value), Mod.Value.Item2);
                 var Origins = new Dictionary<string, HashSet<string>>();
+                var Modifications = Mods[Name].Meta ?? "";
                 foreach (var Mod in Mod_Data) foreach (var Entry in Mod.Value.Item1.Item2)
                     {
                         if (!Origins.ContainsKey(Entry.Value)) Origins.Add(Entry.Value, new HashSet<string>());
@@ -527,8 +527,8 @@ namespace Rythmos.Handlers
                         else if (!File.Exists(Entry.Value)) Remove.Add(Entry.Key);
                     foreach (var Key in Remove) Mod.Value.Item1.Item2.Remove(Key);
                 }
-                foreach (var Mod in Mod_Data) Temporary_Mod_Adder.Invoke(Mod.Key, Collection_Mapping[Name], Mod.Value.Item1.Item2, "", Mod.Value.Item2).ToString();
-                Temporary_Mod_Adder.Invoke(Name + " Manipulations", Collection_Mapping[Name], new Dictionary<string, string> { }, Mods[Name].Meta, 50);
+                foreach (var Mod in Mod_Data) Temporary_Mod_Adder.Invoke(Mod.Key, Collection_Mapping[Name], Mod.Value.Item1.Item2, Modifications.Length == 0 ? Mod.Value.Item1.Item1 : "", Mod.Value.Item2).ToString();
+                if (Modifications.Length > 0) Temporary_Mod_Adder.Invoke(Name + " Manipulations", Collection_Mapping[Name], new Dictionary<string, string> { }, Modifications, 50);
             }
         }
 
