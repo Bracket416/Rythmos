@@ -351,7 +351,7 @@ namespace Rythmos.Handlers
             }
             catch (Exception Error)
             {
-                Log.Information("Parse Mod: " + Error.Message);
+                Log.Error("Parse Mod: " + Error.Message);
                 return Tuple.Create("", Output);
             }
         }
