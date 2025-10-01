@@ -266,85 +266,94 @@ namespace Rythmos.Handlers
 
         private static Tuple<string, Dictionary<string, string>> Parse_Mod(string Name, Tuple<string, int, Dictionary<string, List<string>>> Settings, bool Check_Files = true)
         {
-            var Manipulations = new List<Tuple<int, string>>();
-            var Path = Rythmos_Path + $"\\Mods\\{Name}\\" + Settings.Item1;
-            var Priority = Settings.Item2;
-            var Default = JsonConvert.DeserializeObject<Modification>(File.ReadAllText(Path + "\\default_mod.json"));
-            Default.Priority += Priority;
-            var Mods = new List<Modification> { Default };
-            foreach (var F in Directory.GetFiles(Path).ToList().FindAll(X => X.StartsWith($"{Path}\\group_")))
-            {
-                var Data = JsonConvert.DeserializeObject<Group>(File.ReadAllText(F));
-                if (Data.Type == "Imc")
-                {
-                    IMC I = new IMC();
-                    I.Manipulation = new();
-                    if (Data.Identifier != null) I.Manipulation = ((JObject)Data.Identifier).ToObject<IMC_Manipulation>();
-                    I.Manipulation.Entry = new();
-                    if (Data.DefaultEntry != null) I.Manipulation.Entry = ((JObject)Data.DefaultEntry).ToObject<IMC_Entry>();
-                    foreach (var D in Data.Options) if (Settings.Item3[Data.Name].Contains(D.Name)) I.Manipulation.Entry.AttributeMask |= D.AttributeMask;
-                    Manipulations.Add(Tuple.Create(Priority + Data.Priority, JsonConvert.SerializeObject(I)));
-                    if (Data.AllVariants)
-                    {
-                        I.Manipulation.Variant = 1 - I.Manipulation.Variant;
-                        Manipulations.Add(Tuple.Create(Priority + Data.Priority, JsonConvert.SerializeObject(I, Formatting.None)));
-                    }
-                }
-                else
-                    foreach (var D in Data.Options) if (Settings.Item3[Data.Name].Contains(D.Name))
-                        {
-                            D.Priority += Priority + Data.Priority;
-                            Mods.Add(D);
-                            if (D.Manipulations != null) foreach (var M in D.Manipulations)
-                                {
-                                    var Converted = JsonConvert.SerializeObject(M, Formatting.None);//Regex.Replace(JsonConvert.SerializeObject(M, Formatting.None), @"""(-?\d+(\.\d+)?([eE][+-]?\d+)?)""", "$1");
-                                    Manipulations.Add(Tuple.Create(D.Priority, Converted));
-                                }
-                        }
-            }
             var Output = new Dictionary<string, string>();
-            var Setter = new Dictionary<string, int>();
-            foreach (var Mod in Mods) foreach (var Swap in Mod.Merge())
-                {
-                    if (!Setter.ContainsKey(Swap.Key)) Setter.Add(Swap.Key, Mod.Priority);
-                    if (Setter[Swap.Key] >= Mod.Priority)
-                    {
-                        if (!Output.ContainsKey(Swap.Key)) Output.Add(Swap.Key, Swap.Value.Item1);
-                        if (Swap.Value.Item2 && (File.Exists(Path + "\\" + Swap.Value.Item1) || Types.All(X => !Swap.Value.Item1.StartsWith(X)))) Output[Swap.Key] = Path + "\\" + Swap.Value.Item1;
-                        Setter[Swap.Key] = Mod.Priority;
-                    }
-                }
-            if (Default.Manipulations != null) foreach (var M in Default.Manipulations)
-                {
-                    var Converted = JsonConvert.SerializeObject(M, Formatting.None);//Regex.Replace(JsonConvert.SerializeObject(M, Formatting.None), @"""(-?\d+(\.\d+)?([eE][+-]?\d+)?)""", "$1");
-                    Manipulations.Add(Tuple.Create(Priority, Converted));
-                }
-
-            var Final_Manipulations = new List<Object>();
-
-            string O = null;
-
-            var P = int.MinValue;
-
-            var Found = new List<string>();
-
-            foreach (var M in Manipulations)
+            try
             {
-                P = M.Item1;
-                O = M.Item2;
-                if (Found.Contains(O)) continue;
-                foreach (var N in Manipulations) if (O == N.Item2 && P < N.Item1)
+
+                var Manipulations = new List<Tuple<int, string>>();
+                var Path = Rythmos_Path + $"\\Mods\\{Name}\\" + Settings.Item1;
+                var Priority = Settings.Item2;
+                var Default = JsonConvert.DeserializeObject<Modification>(File.ReadAllText(Path + "\\default_mod.json"));
+                Default.Priority += Priority;
+                var Mods = new List<Modification> { Default };
+                foreach (var F in Directory.GetFiles(Path).ToList().FindAll(X => X.StartsWith($"{Path}\\group_")))
+                {
+                    var Data = JsonConvert.DeserializeObject<Group>(File.ReadAllText(F));
+                    if (Data.Type == "Imc")
                     {
-                        P = N.Item1;
-                        O = N.Item2;
+                        IMC I = new IMC();
+                        I.Manipulation = new();
+                        if (Data.Identifier != null) I.Manipulation = ((JObject)Data.Identifier).ToObject<IMC_Manipulation>();
+                        I.Manipulation.Entry = new();
+                        if (Data.DefaultEntry != null) I.Manipulation.Entry = ((JObject)Data.DefaultEntry).ToObject<IMC_Entry>();
+                        foreach (var D in Data.Options) if (Settings.Item3[Data.Name].Contains(D.Name)) I.Manipulation.Entry.AttributeMask |= D.AttributeMask;
+                        Manipulations.Add(Tuple.Create(Priority + Data.Priority, JsonConvert.SerializeObject(I)));
+                        if (Data.AllVariants)
+                        {
+                            I.Manipulation.Variant = 1 - I.Manipulation.Variant;
+                            Manipulations.Add(Tuple.Create(Priority + Data.Priority, JsonConvert.SerializeObject(I, Formatting.None)));
+                        }
                     }
-                Found.Add(O);
-                Final_Manipulations.Add(JsonConvert.DeserializeObject(O));
+                    else
+                        foreach (var D in Data.Options) if (Settings.Item3[Data.Name].Contains(D.Name))
+                            {
+                                D.Priority += Priority + Data.Priority;
+                                Mods.Add(D);
+                                if (D.Manipulations != null) foreach (var M in D.Manipulations)
+                                    {
+                                        var Converted = JsonConvert.SerializeObject(M, Formatting.None);//Regex.Replace(JsonConvert.SerializeObject(M, Formatting.None), @"""(-?\d+(\.\d+)?([eE][+-]?\d+)?)""", "$1");
+                                        Manipulations.Add(Tuple.Create(D.Priority, Converted));
+                                    }
+                            }
+                }
+                var Setter = new Dictionary<string, int>();
+                foreach (var Mod in Mods) foreach (var Swap in Mod.Merge())
+                    {
+                        if (!Setter.ContainsKey(Swap.Key)) Setter.Add(Swap.Key, Mod.Priority);
+                        if (Setter[Swap.Key] >= Mod.Priority)
+                        {
+                            if (!Output.ContainsKey(Swap.Key)) Output.Add(Swap.Key, Swap.Value.Item1);
+                            if (Swap.Value.Item2 && (File.Exists(Path + "\\" + Swap.Value.Item1) || Types.All(X => !Swap.Value.Item1.StartsWith(X)))) Output[Swap.Key] = Path + "\\" + Swap.Value.Item1;
+                            Setter[Swap.Key] = Mod.Priority;
+                        }
+                    }
+                if (Default.Manipulations != null) foreach (var M in Default.Manipulations)
+                    {
+                        var Converted = JsonConvert.SerializeObject(M, Formatting.None);//Regex.Replace(JsonConvert.SerializeObject(M, Formatting.None), @"""(-?\d+(\.\d+)?([eE][+-]?\d+)?)""", "$1");
+                        Manipulations.Add(Tuple.Create(Priority, Converted));
+                    }
+
+                var Final_Manipulations = new List<Object>();
+
+                string O = null;
+
+                var P = int.MinValue;
+
+                var Found = new List<string>();
+
+                foreach (var M in Manipulations)
+                {
+                    P = M.Item1;
+                    O = M.Item2;
+                    if (Found.Contains(O)) continue;
+                    foreach (var N in Manipulations) if (O == N.Item2 && P < N.Item1)
+                        {
+                            P = N.Item1;
+                            O = N.Item2;
+                        }
+                    Found.Add(O);
+                    Final_Manipulations.Add(JsonConvert.DeserializeObject(O));
+                }
+                //Log.Information(string.Join("\n", Final_Manipulations));
+                //foreach (var M in Final_Manipulations) Log.Information(M.ToString());
+                //foreach (var Item in Output) Log.Information(Item.Key + " " + Item.Value);
+                return Tuple.Create(Make(Final_Manipulations, 0), Output);
             }
-            //Log.Information(string.Join("\n", Final_Manipulations));
-            //foreach (var M in Final_Manipulations) Log.Information(M.ToString());
-            //foreach (var Item in Output) Log.Information(Item.Key + " " + Item.Value);
-            return Tuple.Create(Make(Final_Manipulations, 0), Output);
+            catch (Exception Error)
+            {
+                Log.Information("Parse Mod: " + Error.Message);
+                return Tuple.Create("", Output);
+            }
         }
 
         public static string Make(Object Data, byte Version)
