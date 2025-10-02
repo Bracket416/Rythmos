@@ -436,7 +436,7 @@ namespace Rythmos.Handlers
                                     continue;
                                 }
                                 var Mods = new List<Modification> { Default };
-                                foreach (var F in Directory.GetFiles(Path).ToList().FindAll(X => X.StartsWith($"{Path}\\group_")))
+                                foreach (var F in Directory.GetFiles(Path).ToList().FindAll(X => X.StartsWith($"{Path}\\group_") && !X.EndsWith(".bak")))
                                 {
                                     Group Data = null;
                                     try
@@ -477,9 +477,9 @@ namespace Rythmos.Handlers
                                         if (!Textures.ContainsKey(O.Key.ToLower())) Textures.Add(O.Key.ToLower(), []);
                                         Textures[O.Key.ToLower()].Add(O.Value.ToLower());
                                     }
-                                    else if (O.Value.EndsWith(".mdl"))
+                                    else if (O.Value.EndsWith(".mdl") && (Type == 0 ? true : Current_Files.Contains(O.Value.ToLower())))
                                     {
-                                        Log.Information($"Now reading model {O.Value}.");
+                                        Log.Information($"Reading model {O.Value}.");
                                         if (File.Exists(O.Value))
                                         {
                                             var Parsed_Materials = string.Join("/", File.ReadAllText(O.Value).Split("/").Skip(1)).Split(".mtrl").SkipLast(1).Select(X => (X + ".mtrl").Split("/")[^1]); // Depending on "Type," only Current_Files should affect this.
@@ -490,7 +490,7 @@ namespace Rythmos.Handlers
                             }
                             foreach (var O in Materials) if (Required_Materials.Any(X => O.Key.ToLower().EndsWith(X)))
                                 {
-                                    Log.Information($"Now reading material {O.Value}.");
+                                    Log.Information($"Reading material {O.Value}.");
                                     if (File.Exists(O.Value))
                                     {
                                         var Required_Textures = File.ReadAllText(O.Value, Encoding.UTF8).Split(".tex").SkipLast(1).Select(X => X + ".tex");
