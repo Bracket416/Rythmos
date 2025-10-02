@@ -425,7 +425,16 @@ namespace Rythmos.Handlers
                             foreach (var Penumbra_File in M.Mods.ToList())
                             {
                                 var Path = Penumbra_Path + "\\" + Penumbra_File.Value.Item1;
-                                var Default = JsonConvert.DeserializeObject<Modification>(File.ReadAllText(Path + "\\default_mod.json"));
+                                Modification Default = null;
+                                try
+                                {
+                                    Default = JsonConvert.DeserializeObject<Modification>(File.ReadAllText(Path + "\\default_mod.json"));
+                                }
+                                catch (Exception Error)
+                                {
+                                    Log.Error($"Packing {Penumbra_File.Key}: " + Error.Message);
+                                    continue;
+                                }
                                 var Mods = new List<Modification> { Default };
                                 foreach (var F in Directory.GetFiles(Path).ToList().FindAll(X => X.StartsWith($"{Path}\\group_")))
                                 {
