@@ -678,6 +678,7 @@ namespace Rythmos.Handlers
                                 }
                         }
                     var New_T = TimeProvider.System.GetTimestamp();
+                    List<string> Party_Friends = [];
                     if (New_T - Background_T > 10000000)
                     {
                         var Proxy = InfoProxyCrossRealm.Instance();
@@ -690,6 +691,7 @@ namespace Rythmos.Handlers
                         foreach (var Friend in Party_Members) if (Networking.C.Friends.Contains(Friend))
                             {
                                 var Friend_Path = Rythmos_Path + "\\Compressed\\" + Friend + ".zip";
+                                Party_Friends.Add(Friend);
                                 if (File.Exists(Friend_Path) && !Collection_Mapping.ContainsKey(Friend))
                                 {
                                     Background_T = New_T;
@@ -705,7 +707,7 @@ namespace Rythmos.Handlers
                     }
                     if (New_T - Request_T > 10000000)
                     {
-                        if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading) foreach (var Old in Outdated) if (Entities.Contains(Old))
+                        if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading) foreach (var Old in Outdated) if (Entities.Contains(Old) || Party_Friends.Contains(Old))
                                 {
                                     Request_T = New_T;
                                     Queue.Send(Encoding.UTF8.GetBytes(Old), 2);
