@@ -129,7 +129,6 @@ namespace Rythmos.Handlers
             {
                 Chat.PrintError("[Rythmos] Please update Penumbra!");
                 Log.Error(Error.Message);
-
             }
         }
 
@@ -462,28 +461,38 @@ namespace Rythmos.Handlers
                                     }
                                     else if (O.Value.EndsWith(".mdl"))
                                     {
-                                        var Parsed_Materials = string.Join("/", File.ReadAllText(O.Value).Split("/").Skip(1)).Split(".mtrl").SkipLast(1).Select(X => (X + ".mtrl").Split("/")[^1]); // Depending on "Type," only Current_Files should affect this.
-                                        foreach (var Material in Parsed_Materials) Required_Materials.Add(Material.ToLower());
+                                        Log.Information($"Now reading model {O.Value}.");
+                                        if (File.Exists(O.Value))
+                                        {
+                                            var Parsed_Materials = string.Join("/", File.ReadAllText(O.Value).Split("/").Skip(1)).Split(".mtrl").SkipLast(1).Select(X => (X + ".mtrl").Split("/")[^1]); // Depending on "Type," only Current_Files should affect this.
+                                            foreach (var Material in Parsed_Materials) Required_Materials.Add(Material.ToLower());
+                                        }
+                                        else Log.Error(O.Value + " does not exist.");
                                     }
                             }
                             foreach (var O in Materials) if (Required_Materials.Any(X => O.Key.ToLower().EndsWith(X)))
                                 {
-                                    var Required_Textures = File.ReadAllText(O.Value, Encoding.UTF8).Split(".tex").SkipLast(1).Select(X => X + ".tex");
-                                    foreach (var Texture in Required_Textures)
+                                    Log.Information($"Now reading material {O.Value}.");
+                                    if (File.Exists(O.Value))
                                     {
-                                        var Start = 0;
-                                        for (var I = 0; I < Texture.Length; I++)
+                                        var Required_Textures = File.ReadAllText(O.Value, Encoding.UTF8).Split(".tex").SkipLast(1).Select(X => X + ".tex");
+                                        foreach (var Texture in Required_Textures)
                                         {
-                                            var C = Texture.Substring(I + 1).ToCharArray().Select(X => (byte)X);
-                                            if (((byte)Texture[I]) == 0) Start = I + 1;
-                                        }
-                                        var Texture_Name = Texture.Substring(Start);
-                                        if (Textures.ContainsKey(Texture_Name.ToLower()))
-                                        {
-                                            Log.Information("Found " + Texture_Name + $", which should be replaced by the following:\n- " + string.Join("\n- ", Textures[Texture_Name.ToLower()]));
-                                            foreach (var Required_File in Textures[Texture_Name.ToLower()]) Current_Files.Add(Required_File);
+                                            var Start = 0;
+                                            for (var I = 0; I < Texture.Length; I++)
+                                            {
+                                                var C = Texture.Substring(I + 1).ToCharArray().Select(X => (byte)X);
+                                                if (((byte)Texture[I]) == 0) Start = I + 1;
+                                            }
+                                            var Texture_Name = Texture.Substring(Start);
+                                            if (Textures.ContainsKey(Texture_Name.ToLower()))
+                                            {
+                                                Log.Information("Found " + Texture_Name + $", which should be replaced by the following:\n- " + string.Join("\n- ", Textures[Texture_Name.ToLower()]));
+                                                foreach (var Required_File in Textures[Texture_Name.ToLower()]) Current_Files.Add(Required_File);
+                                            }
                                         }
                                     }
+                                    else Log.Error(O.Value + " does not exist.");
                                 }
                             foreach (var F in Current_Files) Log.Information(F);
                             foreach (var File in Directory.EnumerateFiles(Penumbra_Path, "*", SearchOption.AllDirectories)) if (Paths.Any(X => File.StartsWith(X + "\\")) && (Type == 0 ? true : Current_Files.Contains(File.ToString().ToLower()) || File.EndsWith(".json") || (Type == 2 ? false : File.EndsWith(".pap") || File.EndsWith(".tmb") || File.EndsWith("scd") || File.EndsWith("sklb") || File.EndsWith("kbd") || File.EndsWith("avfx")))) A.CreateEntryFromFile(File, File.Substring(Penumbra_Path.Length + 1));
