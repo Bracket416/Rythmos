@@ -431,7 +431,12 @@ namespace Rythmos.Handlers
                                 foreach (var F in Directory.GetFiles(Path).ToList().FindAll(X => X.StartsWith($"{Path}\\group_")))
                                 {
                                     var Data = JsonConvert.DeserializeObject<Group>(File.ReadAllText(F));
-                                    if (Data.Type != "Imc") foreach (var D in Data.Options) if (Penumbra_File.Value.Item3[Data.Name].Contains(D.Name)) Mods.Add(D);
+                                    if (Data.Type != "Imc") foreach (var D in Data.Options) if (!Penumbra_File.Value.Item3.ContainsKey(Data.Name))
+                                            {
+                                                Log.Error($"{D.Name} of {Penumbra_File.Key} was requested but not gathered as an option.");
+                                                Mods.Add(D);
+                                            }
+                                            else if (Penumbra_File.Value.Item3[Data.Name].Contains(D.Name)) Mods.Add(D);
                                 }
                                 var Output = new Dictionary<string, string>();
                                 var Setter = new Dictionary<string, int>();
