@@ -438,7 +438,16 @@ namespace Rythmos.Handlers
                                 var Mods = new List<Modification> { Default };
                                 foreach (var F in Directory.GetFiles(Path).ToList().FindAll(X => X.StartsWith($"{Path}\\group_")))
                                 {
-                                    var Data = JsonConvert.DeserializeObject<Group>(File.ReadAllText(F));
+                                    Group Data = null;
+                                    try
+                                    {
+                                        Data = JsonConvert.DeserializeObject<Group>(File.ReadAllText(F));
+                                    }
+                                    catch (Exception Error)
+                                    {
+                                        Log.Error($"Packing {F} of {Penumbra_File.Key}: " + Error.Message);
+                                        continue;
+                                    }
                                     if (Data.Type != "Imc") foreach (var D in Data.Options) if (!Penumbra_File.Value.Item3.ContainsKey(Data.Name))
                                             {
                                                 Log.Error($"{D.Name} of {Penumbra_File.Key} was requested but not gathered as an option.");
