@@ -499,7 +499,11 @@ namespace Rythmos.Handlers
             {
                 if (Directory.Exists(Rythmos_Path + $"\\Mods\\{Name}")) Directory.Delete(Rythmos_Path + $"\\Mods\\{Name}", true);
                 ZipFile.ExtractToDirectory(Zip_Path, Rythmos_Path + $"\\Mods\\{Name}\\", true);
-                File.SetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json", DateTime.Now);
+                if (File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json"))
+                {
+                    File.SetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json", DateTime.Now);
+                }
+                else Log.Error($"Unpack: The configuration file for {Name} is missing.");
             }
         }
 
