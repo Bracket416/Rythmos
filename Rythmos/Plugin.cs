@@ -44,7 +44,7 @@ public sealed class Plugin : IDalamudPlugin
                 if (File.Exists(Characters.Rythmos_Path + $"\\Compressed\\{Name}.zip"))
                 {
                     Networking.Progress = "Uploading";
-                    Queue.Send(File.ReadAllBytes(Characters.Rythmos_Path + $"\\Compressed\\{Name}.zip"), 1);
+                    Networking.Send(File.ReadAllBytes(Characters.Rythmos_Path + $"\\Compressed\\{Name}.zip"), 1);
                     Networking.Progress = "Upload Pack";
                 }
                 else Networking.Progress = "Pack Missing";
@@ -60,6 +60,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         return Task.Run(async () =>
         {
+            MainWindow.General_Packing = true;
             try
             {
                 if (Type == 0)
@@ -86,6 +87,7 @@ public sealed class Plugin : IDalamudPlugin
             {
                 Log.Error(Error.Message);
             }
+            MainWindow.General_Packing = false;
         });
     }
 

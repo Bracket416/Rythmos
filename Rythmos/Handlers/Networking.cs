@@ -150,7 +150,8 @@ namespace Rythmos.Handlers
                                                     var Split_Message = UTF8.GetString(Message).Split("|");
                                                     var Character = Split_Message[0];
                                                     var Data = string.Join("|", Split_Message.Skip(1));
-                                                    F.RunOnFrameworkThread(() => Characters.Set_Glamour(Character, Data));
+                                                    Characters.Glamour_Buffer[Character] = Data;
+                                                    //F.RunOnFrameworkThread(() => Characters.Set_Glamour(Character, Data));
                                                 }
                                                 break;
                                             }
@@ -261,10 +262,10 @@ namespace Rythmos.Handlers
                     if (IP.Length == 0) return;
                     await Client.ConnectAsync(IPAddress.Parse(IP), 64141, Token.Token);
                     S = Client.GetStream();
-                    Queue.Start(S);
+                    //Queue.Start(S);
                     if (Name.Length > 0)
                     {
-                        Queue.Send(UTF8.GetBytes(Name + " " + ID), 0);
+                        Send(UTF8.GetBytes(Name + " " + ID), 0);
                         F.RunOnFrameworkThread(() => Characters.Update_Glamour(Characters.Client.LocalPlayer.Address));
                     }
                     Getter = Get();
@@ -310,7 +311,7 @@ namespace Rythmos.Handlers
                             //Log.Information("Trying to connect!");
                             Connect();
                         }
-                        else if (!Downloading) Queue.Send(Array.Empty<byte>(), 3);
+                        else if (!Downloading) Networking.Send(Array.Empty<byte>(), 3);
                         T = New_T;
                     }
                 }

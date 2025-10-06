@@ -26,6 +26,8 @@ public class MainWindow : Window, IDisposable
 
     public string Micro_Packing = "Micro-Pack";
 
+    public bool General_Packing = false;
+
     public MainWindow(Plugin P)
         : base("Rythmos###Rythmos Main", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
@@ -84,24 +86,28 @@ public class MainWindow : Window, IDisposable
                         ImGui.Spacing();
                         Add = false;
                         ImGui.Checkbox($"{Packing}##Rythmos Button", ref Add);
-                        if (Add) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name));
+                        if (Add && !General_Packing) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name));
                         Add = false;
                         ImGui.SameLine();
                         ImGui.Checkbox($"{Mini_Packing}##Rythmos Button", ref Add);
-                        if (Add) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name), 1);
+                        if (Add && !General_Packing) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name), 1);
                         Add = false;
                         ImGui.SameLine();
                         ImGui.Checkbox($"{Micro_Packing}##Rythmos Button", ref Add);
-                        if (Add) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name), 2);
+                        if (Add && !General_Packing) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name), 2);
                         Add = false;
                         ImGui.Spacing();
                         ImGui.Checkbox($"{(Networking.Progress.Length == 0 ? "Upload Pack" : Networking.Progress)}##Rythmos Button", ref Add);
-                        if (Add) P.Uploading(Networking.Name);
+                        if (Add && !General_Packing) P.Uploading(Networking.Name);
                         Add = false;
                         var Previous = P.Configuration.Sync_Glamourer;
                         ImGui.Spacing();
                         ImGui.Checkbox($"Sync Glamourer##Rythmos Syncing", ref P.Configuration.Sync_Glamourer);
-                        if (Previous != P.Configuration.Sync_Glamourer) P.Configuration.Save();
+                        if (Previous != P.Configuration.Sync_Glamourer)
+                        {
+                            if (P.Configuration.Sync_Glamourer) Characters.Update_Glamour(ClientState.LocalPlayer.Address);
+                            P.Configuration.Save();
+                        }
 
                     }
                 }
