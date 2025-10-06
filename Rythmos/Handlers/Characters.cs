@@ -437,7 +437,7 @@ namespace Rythmos.Handlers
                                     continue;
                                 }
                                 var Mods = new List<Modification> { Default };
-                                foreach (var F in Directory.GetFiles(Path).ToList().FindAll(X => X.StartsWith($"{Path}\\group_") && !X.EndsWith(".bak")))
+                                foreach (var F in Directory.GetFiles(Path).ToList().FindAll(X => X.StartsWith($"{Path}\\group_") && X.EndsWith(".json")))
                                 {
                                     Group Data = null;
                                     try
@@ -625,7 +625,7 @@ namespace Rythmos.Handlers
 
         public static void Update_Glamour(nint Address)
         {
-            if (Client.LocalPlayer != null ? Client.LocalPlayer.Address == Address && Networking.C.Sync_Glamourer : false) Queue.Send(Encoding.UTF8.GetBytes(string.Join(", ", Entities) + "|" + Glamour.Pack(Client.LocalPlayer.ObjectIndex)), 4);
+            if (Client.LocalPlayer != null ? Client.LocalPlayer.Address == Address && Networking.C.Sync_Glamourer : false) Networking.Send(Encoding.UTF8.GetBytes(string.Join(", ", Entities) + "|" + Glamour.Pack(Client.LocalPlayer.ObjectIndex)), 4);
         }
 
         public static void Set_Glamour(string Name, string Data)
@@ -759,17 +759,17 @@ namespace Rythmos.Handlers
                                 }
                             }
                     }
-                    if (New_T - T > 30000000)
+                    if (New_T - T > 10000000)
                     {
                         T = New_T;
-                        if (!Update_Characters()) T -= 30000000;
+                        if (!Update_Characters()) T -= 10000000;
                     }
                     if (New_T - Request_T > 10000000)
                     {
                         if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading) foreach (var Old in Outdated) if (Entities.Contains(Old) || Party_Friends.Contains(Old))
                                 {
                                     Request_T = New_T;
-                                    Queue.Send(Encoding.UTF8.GetBytes(Old), 2);
+                                    Networking.Send(Encoding.UTF8.GetBytes(Old), 2);
                                     break;
                                 }
                     }

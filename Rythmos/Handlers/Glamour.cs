@@ -30,7 +30,7 @@ namespace Rythmos.Handlers
             Unlock_State = new UnlockState(I);
             Revert_State = new RevertState(I);
 
-            E = StateChanged.Subscriber(I, Address => Characters.Update_Glamour(Address));
+            E = StateChanged.Subscriber(I, Characters.Update_Glamour);
             try
             {
                 new ApiVersion(I).Invoke();

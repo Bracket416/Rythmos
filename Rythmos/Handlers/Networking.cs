@@ -49,6 +49,34 @@ namespace Rythmos.Handlers
         private static byte[] Vector = Get_Bytes("67-D5-97-22-57-8F-CC-C3-74-4B-6D-62-DF-81-C8-25");
 
         private static string IP = null;
+
+        public static void Send(byte[] Data, byte Type)
+        {
+            if (S is null) return;
+            byte[] Output = new byte[Data.Length + 6];
+            var Size = Data.Length;
+            var E = (byte)(Size % 256);
+            Size -= E;
+            Size /= 256;
+            var D = (byte)(Size % 256);
+            Size -= D;
+            Size /= 256;
+            var C = (byte)(Size % 256);
+            Size -= C;
+            Size /= 256;
+            var B = (byte)(Size % 256);
+            Size -= B;
+            Size /= 256;
+            var A = (byte)(Size % 256);
+            Output[0] = A;
+            Output[1] = B;
+            Output[2] = C;
+            Output[3] = D;
+            Output[4] = E;
+            Output[5] = Type;
+            for (var I = 0; I < Data.Length; I++) Output[I + 6] = Data[I];
+            S.Write(Output);
+        }
         public static Task Get()
         {
             return Task.Run(async () =>
@@ -132,6 +160,8 @@ namespace Rythmos.Handlers
                                                     File.WriteAllBytes(Characters.Rythmos_Path + "\\Compressed\\" + File_Name + ".zip", Output); // This should be a stream in the future for large file sizes.
                                                     try
                                                     {
+                                                        Characters.Outdated.Remove(File_Name);
+                                                        Characters.Outdated.Add(File_Name);
                                                         Characters.Unpack(File_Name);
                                                         F.RunOnFrameworkThread(() =>
                                                         {
@@ -205,7 +235,7 @@ namespace Rythmos.Handlers
 
         public async static Task Connect()
         {
-            if (!Client.Connected && !Connecting)
+            if (!Client.Connected && !Connecting && Characters.Client.LocalPlayer is not null)
             {
                 Connecting = true;
                 Log.Information("Connecting!");
@@ -226,9 +256,11 @@ namespace Rythmos.Handlers
                     if (IP.Length == 0) return;
                     await Client.ConnectAsync(IPAddress.Parse(IP), 64141, Token.Token);
                     S = Client.GetStream();
-                    Queue.Start(S);
                     if (Name.Length > 0)
-                        Queue.Send(UTF8.GetBytes(Name + " " + ID), 0);
+                    {
+                        Send(UTF8.GetBytes(Name + " " + ID), 0);
+                        F.RunOnFrameworkThread(() => Characters.Update_Glamour(Characters.Client.LocalPlayer.Address));
+                    }
                     Getter = Get();
                     Reconnect = false;
                 }
@@ -242,36 +274,39 @@ namespace Rythmos.Handlers
         public static void Update(IFramework F)
         {
             var New_T = TimeProvider.System.GetTimestamp();
-            if (New_T - T > 10000000 && Characters.Client.LocalPlayer is not null)
+            if (New_T - T > 10000000 * (Downloading ? 10 : 1))
             {
                 try
                 {
                     if (!Customize.Ready) Customize.Setup(Customize.Interface);
                     if (!Glamour.Ready) Glamour.Setup(Glamour.Interface);
-                    var Current_Name = Characters.Get_Name(Characters.Client.LocalPlayer.ObjectIndex);
-                    if (Name != Current_Name)
+                    if (Characters.Client.LocalPlayer is not null)
                     {
-                        Reconnect = true;
-                        Name = Current_Name;
-                        if (Client != null)
+                        var Current_Name = Characters.Get_Name(Characters.Client.LocalPlayer.ObjectIndex);
+                        if (Name != Current_Name)
                         {
-                            Client.Close();
-                            Client = new();
+                            Reconnect = true;
+                            Name = Current_Name;
+                            if (Client != null)
+                            {
+                                Client.Close();
+                                Client = new();
+                            }
                         }
-                    }
-                    if (!Client.Connected || Reconnect)
-                    {
-                        ID = C.Player.Length == 0 ? Name : C.Player;
-                        if (ID != C.Player)
+                        if (!Client.Connected || Reconnect)
                         {
-                            C.Player = ID;
-                            C.Save();
+                            ID = C.Player.Length == 0 ? Name : C.Player;
+                            if (ID != C.Player)
+                            {
+                                C.Player = ID;
+                                C.Save();
+                            }
+                            //Log.Information("Trying to connect!");
+                            Connect();
                         }
-                        //Log.Information("Trying to connect!");
-                        Connect();
+                        else Send(Array.Empty<byte>(), 3);
+                        T = New_T;
                     }
-                    else Queue.Send(Array.Empty<byte>(), 3);
-                    T = New_T;
                 }
                 catch (Exception Error)
                 {
