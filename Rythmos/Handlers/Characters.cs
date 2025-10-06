@@ -108,6 +108,8 @@ namespace Rythmos.Handlers
 
         public static Guid Default = new();
 
+        public static Dictionary<string, long> Requesting = new();
+
         public static void Setup(IDalamudPluginInterface I, IChatGui Chat)
         {
             try
@@ -625,7 +627,7 @@ namespace Rythmos.Handlers
 
         public static void Update_Glamour(nint Address)
         {
-            if (Client.LocalPlayer != null ? Client.LocalPlayer.Address == Address && Networking.C.Sync_Glamourer : false) Networking.Send(Encoding.UTF8.GetBytes(string.Join(", ", Entities) + "|" + Glamour.Pack(Client.LocalPlayer.ObjectIndex)), 4);
+            if (Client.LocalPlayer != null ? Client.LocalPlayer.Address == Address && Networking.C.Sync_Glamourer : false) Queue.Send(Encoding.UTF8.GetBytes(string.Join(", ", Entities) + "|" + Glamour.Pack(Client.LocalPlayer.ObjectIndex)), 4);
         }
 
         public static void Set_Glamour(string Name, string Data)
@@ -764,15 +766,12 @@ namespace Rythmos.Handlers
                         T = New_T;
                         if (!Update_Characters()) T -= 10000000;
                     }
-                    if (New_T - Request_T > 10000000)
-                    {
-                        if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading) foreach (var Old in Outdated) if (Entities.Contains(Old) || Party_Friends.Contains(Old))
-                                {
-                                    Request_T = New_T;
-                                    Networking.Send(Encoding.UTF8.GetBytes(Old), 2);
-                                    break;
-                                }
-                    }
+                    if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading) foreach (var Old in Outdated) if ((Entities.Contains(Old) || Party_Friends.Contains(Old)) && (Requesting.ContainsKey(Old) ? New_T - Requesting[Old] > 100000000 : true))
+                            {
+                                Requesting[Old] = New_T;
+                                Queue.Send(Encoding.UTF8.GetBytes(Old), 2);
+                                break;
+                            }
                 }
             }
         }

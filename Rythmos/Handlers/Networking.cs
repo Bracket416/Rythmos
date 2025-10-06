@@ -98,7 +98,12 @@ namespace Rythmos.Handlers
                             {
                                 var Size = (ulong)(Total[0] * Math.Pow(256, 4) + Total[1] * Math.Pow(256, 3) + Total[2] * Math.Pow(256, 2) + Total[3] * 256 + Total[4]);
                                 if (Total[5] >= 220) Downloading = true;
-                                if (Downloading && Size > (ulong)(Total[5] - 220)) Download_Progress = $" — Downloading {UTF8.GetString(Total.Skip(6).Take(Total[5] - 220).ToArray())} (" + (100 * Offset / Size) + "%)";
+                                if (Downloading && Size > (ulong)(Total[5] - 220))
+                                {
+                                    var Downloading_Name = UTF8.GetString(Total.Skip(6).Take(Total[5] - 220).ToArray());
+                                    Download_Progress = $" — Downloading {Downloading_Name} (" + (100 * Offset / Size) + "%)";
+                                    Characters.Requesting[Downloading_Name] = TimeProvider.System.GetTimestamp();
+                                }
                                 //if (Downloading) Log.Information("Download: " + (100 * Offset / Size) + "%");
                                 while (Offset >= Size + 6) // The data has been totally processed.
                                 {
@@ -256,9 +261,10 @@ namespace Rythmos.Handlers
                     if (IP.Length == 0) return;
                     await Client.ConnectAsync(IPAddress.Parse(IP), 64141, Token.Token);
                     S = Client.GetStream();
+                    Queue.Start(S);
                     if (Name.Length > 0)
                     {
-                        Send(UTF8.GetBytes(Name + " " + ID), 0);
+                        Queue.Send(UTF8.GetBytes(Name + " " + ID), 0);
                         F.RunOnFrameworkThread(() => Characters.Update_Glamour(Characters.Client.LocalPlayer.Address));
                     }
                     Getter = Get();
@@ -304,7 +310,7 @@ namespace Rythmos.Handlers
                             //Log.Information("Trying to connect!");
                             Connect();
                         }
-                        else Send(Array.Empty<byte>(), 3);
+                        else if (!Downloading) Queue.Send(Array.Empty<byte>(), 3);
                         T = New_T;
                     }
                 }
