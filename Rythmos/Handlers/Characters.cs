@@ -680,7 +680,7 @@ namespace Rythmos.Handlers
                                 {
                                     Glamour.Unlock(ID_Mapping[Name]);
                                     Glamour.Revert(ID_Mapping[Name]);
-                                    ID_Mapping[Name] = O.ObjectIndex;
+                                    ID_Mapping.Remove(Name);
                                 }
                         foreach (var I in Objects) if (I.ObjectKind is Dalamud.Game.ClientState.Objects.Enums.ObjectKind.BattleNpc || I.ObjectKind is Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Companion) if (I.OwnerId == O.GameObjectId)
                                 {
@@ -751,8 +751,6 @@ namespace Rythmos.Handlers
                                     ID_Mapping.Remove(Key);
                                 }
                         }
-                        foreach (var Setting in Glamour_Buffer) Set_Glamour(Setting.Key, Setting.Value);
-                        Glamour_Buffer.Clear();
                     }
                     var New_T = TimeProvider.System.GetTimestamp();
                     List<string> Party_Friends = [];
@@ -781,6 +779,11 @@ namespace Rythmos.Handlers
                     {
                         T = New_T;
                         if (!Update_Characters()) T -= 10000000;
+                    }
+                    if (Glamour.Ready)
+                    {
+                        foreach (var Setting in Glamour_Buffer) if (ID_Mapping.ContainsKey(Setting.Key)) Set_Glamour(Setting.Key, Setting.Value);
+                        Glamour_Buffer = new Dictionary<string, string>(Glamour_Buffer.Where(X => !ID_Mapping.ContainsKey(X.Key)));
                     }
                     if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading) foreach (var Old in Outdated) if ((Entities.Contains(Old) || Party_Friends.Contains(Old)) && (Requesting.ContainsKey(Old) ? New_T - Requesting[Old] > 100000000 : true))
                             {
