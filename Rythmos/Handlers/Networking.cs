@@ -178,6 +178,7 @@ namespace Rythmos.Handlers
                                                                     Characters.Prepare(File_Name);
                                                                     Characters.Enable(File_Name);
                                                                 }
+                                                                Characters.File_Time_Mapping[File_Name] = Characters.Server_Time_Mapping[File_Name];
                                                             });
                                                     }
                                                     catch (Exception Error)
