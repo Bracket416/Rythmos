@@ -267,7 +267,7 @@ namespace Rythmos.Handlers
                     Queue.Start(S);
                     if (Name.Length > 0)
                     {
-                        Queue.Send(UTF8.GetBytes(Name + " " + ID), 0);
+                        Networking.Send(UTF8.GetBytes(Name + " " + ID), 0);
                         F.RunOnFrameworkThread(() => Characters.Update_Glamour(Characters.Client.LocalPlayer.Address));
                     }
                     Getter = Get();
@@ -313,7 +313,7 @@ namespace Rythmos.Handlers
                             //Log.Information("Trying to connect!");
                             Connect();
                         }
-                        else if (!Downloading) Queue.Send(Array.Empty<byte>(), 3);
+                        else if (!Downloading) Networking.Send(Array.Empty<byte>(), 3);
                         T = New_T;
                     }
                 }
