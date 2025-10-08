@@ -593,6 +593,7 @@ namespace Rythmos.Handlers
                     Log.Error(Error.Message);
                     Log.Information($"Deleting the archive of {Name}.");
                     Log.Information($"Requesting the archive of {Name}.");
+                    File_Time_Mapping[Name] = 0;
                 }
             }
             return false;
