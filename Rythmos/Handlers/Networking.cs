@@ -50,32 +50,35 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
-        public static void Send(byte[] Data, byte Type)
+        public static Task Send(byte[] Data, byte Type)
         {
-            if (S is null) return;
-            byte[] Output = new byte[Data.Length + 6];
-            var Size = Data.Length;
-            var E = (byte)(Size % 256);
-            Size -= E;
-            Size /= 256;
-            var D = (byte)(Size % 256);
-            Size -= D;
-            Size /= 256;
-            var C = (byte)(Size % 256);
-            Size -= C;
-            Size /= 256;
-            var B = (byte)(Size % 256);
-            Size -= B;
-            Size /= 256;
-            var A = (byte)(Size % 256);
-            Output[0] = A;
-            Output[1] = B;
-            Output[2] = C;
-            Output[3] = D;
-            Output[4] = E;
-            Output[5] = Type;
-            for (var I = 0; I < Data.Length; I++) Output[I + 6] = Data[I];
-            S.Write(Output);
+            return Task.Run(() =>
+            {
+                if (S is null) return;
+                byte[] Output = new byte[Data.Length + 6];
+                var Size = Data.Length;
+                var E = (byte)(Size % 256);
+                Size -= E;
+                Size /= 256;
+                var D = (byte)(Size % 256);
+                Size -= D;
+                Size /= 256;
+                var C = (byte)(Size % 256);
+                Size -= C;
+                Size /= 256;
+                var B = (byte)(Size % 256);
+                Size -= B;
+                Size /= 256;
+                var A = (byte)(Size % 256);
+                Output[0] = A;
+                Output[1] = B;
+                Output[2] = C;
+                Output[3] = D;
+                Output[4] = E;
+                Output[5] = Type;
+                for (var I = 0; I < Data.Length; I++) Output[I + 6] = Data[I];
+                S.Write(Output);
+            });
         }
         public static Task Get()
         {
@@ -168,18 +171,17 @@ namespace Rythmos.Handlers
                                                     {
                                                         Characters.Outdated.Remove(File_Name);
                                                         Characters.Outdated.Add(File_Name);
-                                                        Characters.Unpack(File_Name);
-                                                        F.RunOnFrameworkThread(() =>
-                                                        {
-                                                            if (Characters.ID_Mapping.ContainsKey(File_Name))
+                                                        if (Characters.Unpack(File_Name)) F.RunOnFrameworkThread(() =>
                                                             {
-                                                                Characters.Set_Collection(Characters.ID_Mapping[File_Name]);
-                                                                Characters.Load(File_Name);
-                                                                Characters.Prepare(File_Name);
-                                                                Characters.Enable(File_Name);
-                                                            }
-                                                            Characters.Outdated.Remove(File_Name);
-                                                        });
+                                                                if (Characters.ID_Mapping.ContainsKey(File_Name))
+                                                                {
+                                                                    Characters.Set_Collection(Characters.ID_Mapping[File_Name]);
+                                                                    Characters.Load(File_Name);
+                                                                    Characters.Prepare(File_Name);
+                                                                    Characters.Enable(File_Name);
+                                                                }
+                                                                Characters.Outdated.Remove(File_Name);
+                                                            });
                                                     }
                                                     catch (Exception Error)
                                                     {
@@ -262,10 +264,10 @@ namespace Rythmos.Handlers
                     if (IP.Length == 0) return;
                     await Client.ConnectAsync(IPAddress.Parse(IP), 64141, Token.Token);
                     S = Client.GetStream();
-                    //Queue.Start(S);
+                    Queue.Start(S);
                     if (Name.Length > 0)
                     {
-                        Send(UTF8.GetBytes(Name + " " + ID), 0);
+                        Queue.Send(UTF8.GetBytes(Name + " " + ID), 0);
                         F.RunOnFrameworkThread(() => Characters.Update_Glamour(Characters.Client.LocalPlayer.Address));
                     }
                     Getter = Get();
@@ -311,7 +313,7 @@ namespace Rythmos.Handlers
                             //Log.Information("Trying to connect!");
                             Connect();
                         }
-                        else if (!Downloading) Networking.Send(Array.Empty<byte>(), 3);
+                        else if (!Downloading) Queue.Send(Array.Empty<byte>(), 3);
                         T = New_T;
                     }
                 }

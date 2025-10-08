@@ -555,19 +555,28 @@ namespace Rythmos.Handlers
                 }
             });
         }
-        public static void Unpack(string Name)
+        public static bool Unpack(string Name)
         {
             var Zip_Path = Rythmos_Path + $"\\Compressed\\{Name}.zip";
             if (File.Exists(Zip_Path))
             {
                 if (Directory.Exists(Rythmos_Path + $"\\Mods\\{Name}")) Directory.Delete(Rythmos_Path + $"\\Mods\\{Name}", true);
-                ZipFile.ExtractToDirectory(Zip_Path, Rythmos_Path + $"\\Mods\\{Name}\\", true);
-                if (File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json"))
+                try
                 {
-                    File.SetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json", DateTime.Now);
+                    ZipFile.ExtractToDirectory(Zip_Path, Rythmos_Path + $"\\Mods\\{Name}\\", true);
+                    if (File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json"))
+                    {
+                        File.SetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json", DateTime.Now);
+                        return true;
+                    }
+                    else Log.Error($"Unpack: The configuration file for {Name} is missing.");
                 }
-                else Log.Error($"Unpack: The configuration file for {Name} is missing.");
+                catch (Exception Error)
+                {
+                    Log.Error(Error.Message);
+                }
             }
+            return false;
         }
 
         public static void Load(string Name)
@@ -629,7 +638,7 @@ namespace Rythmos.Handlers
 
         public static void Update_Glamour(nint Address)
         {
-            if (Client.LocalPlayer != null ? Client.LocalPlayer.Address == Address && Networking.C.Sync_Glamourer : false) Networking.Send(Encoding.UTF8.GetBytes(string.Join(", ", Entities) + "|" + Glamour.Pack(Client.LocalPlayer.ObjectIndex)), 4);
+            if (Client.LocalPlayer != null ? Client.LocalPlayer.Address == Address && Networking.C.Sync_Glamourer : false) Queue.Send(Encoding.UTF8.GetBytes(string.Join(", ", Entities) + "|" + Glamour.Pack(Client.LocalPlayer.ObjectIndex)), 4);
         }
 
         public static void Set_Glamour(string Name, string Data)
@@ -776,7 +785,7 @@ namespace Rythmos.Handlers
                     if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading) foreach (var Old in Outdated) if ((Entities.Contains(Old) || Party_Friends.Contains(Old)) && (Requesting.ContainsKey(Old) ? New_T - Requesting[Old] > 100000000 : true))
                             {
                                 Requesting[Old] = New_T;
-                                Networking.Send(Encoding.UTF8.GetBytes(Old), 2);
+                                Queue.Send(Encoding.UTF8.GetBytes(Old), 2);
                                 break;
                             }
                 }
