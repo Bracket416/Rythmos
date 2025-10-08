@@ -140,8 +140,7 @@ namespace Rythmos.Handlers
                                                         var T = long.Parse(Split_Part[3]);
                                                         var Character = string.Join(" ", Split_Part.Take(3));
                                                         var Zipped = Characters.Rythmos_Path + $"\\Compressed\\{Character}.zip";
-                                                        var Old_T = File.Exists(Zipped) ? ((new FileInfo(Zipped)).Length == 0 ? 0 : new DateTimeOffset(File.GetLastWriteTime(Zipped)).ToUnixTimeMilliseconds()) : 0;
-                                                        if (Old_T < T) if (!Characters.Outdated.Contains(Character)) Characters.Outdated.Add(Character);
+                                                        Characters.Server_Time_Mapping[Character] = T;
                                                     }
                                                 break;
                                             }
@@ -166,11 +165,10 @@ namespace Rythmos.Handlers
                                                     var File_Name = UTF8.GetString(Total.Skip(6).Take(Name_Offset).ToArray());
                                                     var Output = new byte[Size - ((ulong)Name_Offset)];
                                                     for (ulong I = 0; I < (ulong)Output.Length; I++) Output[I] = Total[I + 6 + ((ulong)Name_Offset)];
+                                                    Characters.Locked[File_Name] = true;
                                                     File.WriteAllBytes(Characters.Rythmos_Path + "\\Compressed\\" + File_Name + ".zip", Output); // This should be a stream in the future for large file sizes.
                                                     try
                                                     {
-                                                        Characters.Outdated.Remove(File_Name);
-                                                        Characters.Outdated.Add(File_Name);
                                                         if (Characters.Unpack(File_Name)) F.RunOnFrameworkThread(() =>
                                                             {
                                                                 if (Characters.ID_Mapping.ContainsKey(File_Name))
@@ -180,13 +178,13 @@ namespace Rythmos.Handlers
                                                                     Characters.Prepare(File_Name);
                                                                     Characters.Enable(File_Name);
                                                                 }
-                                                                Characters.Outdated.Remove(File_Name);
                                                             });
                                                     }
                                                     catch (Exception Error)
                                                     {
                                                         Log.Error("Request Unpacking: " + Error.Message);
                                                     }
+                                                    Characters.Locked[File_Name] = false;
                                                     Downloading = false;
                                                     Download_Progress = "";
                                                 }

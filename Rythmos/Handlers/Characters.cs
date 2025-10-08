@@ -13,6 +13,7 @@ using Penumbra.Api.IpcSubscribers;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -90,8 +91,6 @@ namespace Rythmos.Handlers
 
         public static string Rythmos_Path = "";
 
-        public static List<string> Outdated = new();
-
         public static List<string> Entities = new();
 
         private static Dictionary<string, ushort> Pets = new();
@@ -111,6 +110,12 @@ namespace Rythmos.Handlers
         public static Dictionary<string, long> Requesting = new();
 
         public static Dictionary<string, string> Glamour_Buffer = new();
+
+        public static Dictionary<string, long> File_Time_Mapping = new();
+
+        public static Dictionary<string, long> Server_Time_Mapping = new();
+
+        public static Dictionary<string, bool> Locked = new();
 
         public static void Setup(IDalamudPluginInterface I, IChatGui Chat)
         {
@@ -151,17 +156,29 @@ namespace Rythmos.Handlers
 
         public static bool Create_Collection(string Name)
         {
-            if (Mods.ContainsKey(Name) ? true : File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json"))
+            if (Mods.ContainsKey(Name) ? true : (File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") || (File.Exists(Rythmos_Path + $"\\Compressed\\{Name}.zip") && (Locked.ContainsKey(Name) ? !Locked[Name] : true))))
             {
-                if ((File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") ? File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") < File.GetLastWriteTime(Rythmos_Path + $"\\Compressed\\{Name}.zip") : true) && File.Exists(Rythmos_Path + $"\\Compressed\\{Name}.zip")) Unpack(Name);
-                Log.Information($"Creating the collection of {Name}!");
-                Collection_Creator.Invoke(Name, Name, out var Collection_ID);
-                Collection_Mapping.Add(Name, Collection_ID);
-                Load(Name);
-                Prepare(Name);
-                return true;
+                File_Time_Mapping[Name] = 0;
+                Log.Information($"Attempting to create collection of {Name}!");
+                var Success = true;
+                if ((File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") ? File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") < File.GetLastWriteTime(Rythmos_Path + $"\\Compressed\\{Name}.zip") : true) && File.Exists(Rythmos_Path + $"\\Compressed\\{Name}.zip")) Success = Unpack(Name);
+                if (File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json"))
+                {
+                    File_Time_Mapping[Name] = new DateTimeOffset(File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json")).ToUnixTimeMilliseconds();
+                    Log.Information($"Creating the collection of {Name}!");
+                    Collection_Creator.Invoke(Name, Name, out var Collection_ID);
+                    Collection_Mapping.Add(Name, Collection_ID);
+                    Load(Name);
+                    Prepare(Name);
+                    return true;
+                }
+                else return false;
             }
-            else return false;
+            else
+            {
+                File_Time_Mapping[Name] = 0;
+                return false;
+            }
         }
 
         public static bool Set_Collection(ushort ID)
@@ -572,7 +589,10 @@ namespace Rythmos.Handlers
                 }
                 catch (Exception Error)
                 {
+                    File.Delete(Zip_Path);
                     Log.Error(Error.Message);
+                    Log.Information($"Deleting the archive of {Name}.");
+                    Log.Information($"Requesting the archive of {Name}.");
                 }
             }
             return false;
@@ -784,10 +804,10 @@ namespace Rythmos.Handlers
                         foreach (var Setting in Glamour_Buffer) if (ID_Mapping.ContainsKey(Setting.Key)) Set_Glamour(Setting.Key, Setting.Value);
                         Glamour_Buffer = new Dictionary<string, string>(Glamour_Buffer.Where(X => !ID_Mapping.ContainsKey(X.Key)));
                     }
-                    if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading) foreach (var Old in Outdated) if ((Entities.Contains(Old) || Party_Friends.Contains(Old)) && (Requesting.ContainsKey(Old) ? New_T - Requesting[Old] > 100000000 : true))
+                    if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading && New_T - Request_T > 10000000) foreach (var Friend in Networking.C.Friends) if (File_Time_Mapping.ContainsKey(Friend) && Server_Time_Mapping.ContainsKey(Friend) ? File_Time_Mapping[Friend] < Server_Time_Mapping[Friend] : false)
                             {
-                                Requesting[Old] = New_T;
-                                Networking.Send(Encoding.UTF8.GetBytes(Old), 2);
+                                Request_T = New_T;
+                                Networking.Send(Encoding.UTF8.GetBytes(Friend), 2);
                                 break;
                             }
                 }
