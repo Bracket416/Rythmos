@@ -110,6 +110,7 @@ namespace Rythmos.Handlers
                                 //if (Downloading) Log.Information("Download: " + (100 * Offset / Size) + "%");
                                 while (Offset >= Size + 6) // The data has been totally processed.
                                 {
+                                    if (Total[5] >= 220) Downloading = true;
                                     var Flag = Total[5];
                                     switch (Flag)
                                     {

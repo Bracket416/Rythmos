@@ -159,9 +159,7 @@ namespace Rythmos.Handlers
             if (Mods.ContainsKey(Name) ? true : (File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") || (File.Exists(Rythmos_Path + $"\\Compressed\\{Name}.zip") && (Locked.ContainsKey(Name) ? !Locked[Name] : true))))
             {
                 File_Time_Mapping[Name] = 0;
-                Log.Information($"Attempting to create collection of {Name}!");
-                var Success = true;
-                if ((File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") ? File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") < File.GetLastWriteTime(Rythmos_Path + $"\\Compressed\\{Name}.zip") : true) && File.Exists(Rythmos_Path + $"\\Compressed\\{Name}.zip")) Success = Unpack(Name);
+                if ((File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") ? File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") < File.GetLastWriteTime(Rythmos_Path + $"\\Compressed\\{Name}.zip") : true) && File.Exists(Rythmos_Path + $"\\Compressed\\{Name}.zip")) Unpack(Name);
                 if (File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json"))
                 {
                     File_Time_Mapping[Name] = new DateTimeOffset(File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json")).ToUnixTimeMilliseconds();
