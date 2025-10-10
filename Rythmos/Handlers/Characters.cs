@@ -721,6 +721,7 @@ namespace Rythmos.Handlers
                         {
                             ID_Mapping[Name] = O.ObjectIndex;
                             Set_Customize(Name);
+                            if (Glamour.Ready) Set_Glamour(Name, Glamours[Name]);
                             Character_Changed = true;
                             Recustomize.Remove(Name);
                         }
@@ -744,72 +745,79 @@ namespace Rythmos.Handlers
 
         public static void Update(IFramework F)
         {
-            if (Rythmos_Path.Length > 0 && Customize.Ready)
+            try
             {
-                if (!Client.IsLoggedIn && Client.LocalPlayer is null)
+                if (Rythmos_Path.Length > 0 && Customize.Ready)
                 {
-                    foreach (var Key in Collection_Mapping.Keys.AsEnumerable<string>()) Remove_Collection(Key);
-                    T = 0;
-                    Background_T = 0;
-                    Request_T = 0;
-                }
-                else if (Client.LocalPlayer is not null)
-                {
-                    if (Glamour.Ready)
+                    if (!Client.IsLoggedIn && Client.LocalPlayer is null)
                     {
-                        foreach (var O in Objects)
+                        foreach (var Key in Collection_Mapping.Keys.AsEnumerable<string>()) Remove_Collection(Key);
+                        T = 0;
+                        Background_T = 0;
+                        Request_T = 0;
+                    }
+                    else if (Client.LocalPlayer is not null)
+                    {
+                        if (Glamour.Ready)
                         {
-                            var Keys = ID_Mapping.Keys.ToList();
-                            var Name = Get_Name(O.ObjectIndex);
-                            foreach (var Key in Keys) if (ID_Mapping[Key] == O.ObjectIndex && Key != Name)
+                            foreach (var O in Objects)
+                            {
+                                var Keys = ID_Mapping.Keys.ToList();
+                                var Name = Get_Name(O.ObjectIndex);
+                                foreach (var Key in Keys) if (ID_Mapping[Key] == O.ObjectIndex && Key != Name)
+                                    {
+                                        Log.Information($"The object index of {Key} has become that of {Name}.");
+                                        Glamour.Unlock(O.ObjectIndex);
+                                        Glamour.Revert(O.ObjectIndex);
+                                        ID_Mapping.Remove(Key);
+                                    }
+                            }
+                        }
+                        var New_T = TimeProvider.System.GetTimestamp();
+                        List<string> Party_Friends = [];
+                        if (New_T - Background_T > 10000000)
+                        {
+                            var Proxy = InfoProxyCrossRealm.Instance();
+                            var Party_Members = new List<string>();
+                            if (Proxy->IsInCrossRealmParty)
+                            {
+                                Party_Members = Proxy->CrossRealmGroups[Proxy->LocalPlayerGroupIndex].GroupMembers.ToArray().Where(X => X.NameString.Length > 0).Select(X => X.NameString + " " + Data_Manager.GetExcelSheet<World>().GetRow((uint)X.HomeWorld).Name.ToString()).ToList();
+                            }
+                            else foreach (var Member in Party) Party_Members.Add(Member.Name + " " + Member.World.Value.Name.ExtractText());
+                            foreach (var Friend in Party_Members) if (Networking.C.Friends.Contains(Friend))
                                 {
-                                    Log.Information($"The object index of {Key} has become that of {Name}.");
-                                    Glamour.Unlock(O.ObjectIndex);
-                                    Glamour.Revert(O.ObjectIndex);
-                                    ID_Mapping.Remove(Key);
+                                    var Friend_Path = Rythmos_Path + "\\Compressed\\" + Friend + ".zip";
+                                    Party_Friends.Add(Friend);
+                                    if (File.Exists(Friend_Path) && !Collection_Mapping.ContainsKey(Friend))
+                                    {
+                                        Background_T = New_T;
+                                        Create_Collection(Friend);
+                                        break;
+                                    }
                                 }
                         }
-                    }
-                    var New_T = TimeProvider.System.GetTimestamp();
-                    List<string> Party_Friends = [];
-                    if (New_T - Background_T > 10000000)
-                    {
-                        var Proxy = InfoProxyCrossRealm.Instance();
-                        var Party_Members = new List<string>();
-                        if (Proxy->IsInCrossRealmParty)
+                        if (New_T - T > 10000000)
                         {
-                            Party_Members = Proxy->CrossRealmGroups[Proxy->LocalPlayerGroupIndex].GroupMembers.ToArray().Where(X => X.NameString.Length > 0).Select(X => X.NameString + " " + Data_Manager.GetExcelSheet<World>().GetRow((uint)X.HomeWorld).Name.ToString()).ToList();
+                            T = New_T;
+                            if (!Update_Characters()) T -= 10000000;
                         }
-                        else foreach (var Member in Party) Party_Members.Add(Member.Name + " " + Member.World.Value.Name.ExtractText());
-                        foreach (var Friend in Party_Members) if (Networking.C.Friends.Contains(Friend))
-                            {
-                                var Friend_Path = Rythmos_Path + "\\Compressed\\" + Friend + ".zip";
-                                Party_Friends.Add(Friend);
-                                if (File.Exists(Friend_Path) && !Collection_Mapping.ContainsKey(Friend))
+                        if (Glamour.Ready)
+                        {
+                            foreach (var Setting in Glamour_Buffer) if (ID_Mapping.ContainsKey(Setting.Key)) Set_Glamour(Setting.Key, Setting.Value);
+                            Glamour_Buffer = new Dictionary<string, string>(Glamour_Buffer.Where(X => !ID_Mapping.ContainsKey(X.Key)));
+                        }
+                        if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading && New_T - Request_T > 10000000) foreach (var Friend in Networking.C.Friends) if (File_Time_Mapping.ContainsKey(Friend) && Server_Time_Mapping.ContainsKey(Friend) ? File_Time_Mapping[Friend] < Server_Time_Mapping[Friend] : false)
                                 {
-                                    Background_T = New_T;
-                                    Create_Collection(Friend);
+                                    Request_T = New_T;
+                                    Networking.Send(Encoding.UTF8.GetBytes(Friend), 2);
                                     break;
                                 }
-                            }
                     }
-                    if (New_T - T > 10000000)
-                    {
-                        T = New_T;
-                        if (!Update_Characters()) T -= 10000000;
-                    }
-                    if (Glamour.Ready)
-                    {
-                        foreach (var Setting in Glamour_Buffer) if (ID_Mapping.ContainsKey(Setting.Key)) Set_Glamour(Setting.Key, Setting.Value);
-                        Glamour_Buffer = new Dictionary<string, string>(Glamour_Buffer.Where(X => !ID_Mapping.ContainsKey(X.Key)));
-                    }
-                    if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading && New_T - Request_T > 10000000) foreach (var Friend in Networking.C.Friends) if (File_Time_Mapping.ContainsKey(Friend) && Server_Time_Mapping.ContainsKey(Friend) ? File_Time_Mapping[Friend] < Server_Time_Mapping[Friend] : false)
-                            {
-                                Request_T = New_T;
-                                Networking.Send(Encoding.UTF8.GetBytes(Friend), 2);
-                                break;
-                            }
                 }
+            }
+            catch (Exception Error)
+            {
+                Log.Error("Character Update: " + Error.Message);
             }
         }
     }
