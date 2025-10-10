@@ -721,8 +721,8 @@ namespace Rythmos.Handlers
                         {
                             ID_Mapping[Name] = O.ObjectIndex;
                             Set_Customize(Name);
+                            Log.Information($"Recustomizing {Name}.");
                             if (Glamour.Ready) Set_Glamour(Name, Glamours[Name]);
-                            Character_Changed = true;
                             Recustomize.Remove(Name);
                         }
                         if (Mods.ContainsKey(Name) && Character_Changed) Changed = true;
@@ -796,11 +796,7 @@ namespace Rythmos.Handlers
                                     }
                                 }
                         }
-                        if (New_T - T > 10000000)
-                        {
-                            T = New_T;
-                            if (!Update_Characters()) T -= 10000000;
-                        }
+                        Update_Characters();
                         if (Glamour.Ready)
                         {
                             foreach (var Setting in Glamour_Buffer) if (ID_Mapping.ContainsKey(Setting.Key)) Set_Glamour(Setting.Key, Setting.Value);
