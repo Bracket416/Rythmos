@@ -6,8 +6,10 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using static FFXIVClientStructs.FFXIV.Component.GUI.AtkTimer.Delegates;
 using static System.Text.Encoding;
 
 namespace Rythmos.Handlers
@@ -35,6 +37,8 @@ namespace Rythmos.Handlers
         public static string Progress = "";
 
         public static bool Downloading = false;
+
+        private static bool Started = false;
 
         public static string Download_Progress = "";
 
@@ -104,13 +108,21 @@ namespace Rythmos.Handlers
                                 if (Downloading && Size > (ulong)(Total[5] - 220))
                                 {
                                     var Downloading_Name = UTF8.GetString(Total.Skip(6).Take(Total[5] - 220).ToArray());
+                                    if (!Started) Networking.Send(UTF8.GetBytes(Downloading_Name), 6);
                                     Download_Progress = $" — Downloading {Downloading_Name} (" + (100 * Offset / Size) + "%)";
                                     Characters.Requesting[Downloading_Name] = TimeProvider.System.GetTimestamp();
+                                    Started = true;
                                 }
                                 //if (Downloading) Log.Information("Download: " + (100 * Offset / Size) + "%");
                                 while (Offset >= Size + 6) // The data has been totally processed.
                                 {
-                                    if (Total[5] >= 220) Downloading = true;
+                                    if (Total[5] >= 220)
+                                    {
+                                        var Downloading_Name = UTF8.GetString(Total.Skip(6).Take(Total[5] - 220).ToArray());
+                                        if (!Started) Networking.Send(UTF8.GetBytes(Downloading_Name), 6);
+                                        Characters.Requesting[Downloading_Name] = TimeProvider.System.GetTimestamp();
+                                        Started = true;
+                                    }
                                     var Flag = Total[5];
                                     switch (Flag)
                                     {
@@ -165,6 +177,7 @@ namespace Rythmos.Handlers
                                                     var Name_Offset = Flag - 220;
                                                     var File_Name = UTF8.GetString(Total.Skip(6).Take(Name_Offset).ToArray());
                                                     var Output = new byte[Size - ((ulong)Name_Offset)];
+                                                    Networking.Send(UTF8.GetBytes(File_Name), 5);
                                                     for (ulong I = 0; I < (ulong)Output.Length; I++) Output[I] = Total[I + 6 + ((ulong)Name_Offset)];
                                                     Characters.Locked[File_Name] = true;
                                                     File.WriteAllBytes(Characters.Rythmos_Path + "\\Compressed\\" + File_Name + ".zip", Output); // This should be a stream in the future for large file sizes.
@@ -188,6 +201,7 @@ namespace Rythmos.Handlers
                                                     }
                                                     Characters.Locked[File_Name] = false;
                                                     Downloading = false;
+                                                    Started = false;
                                                     Download_Progress = "";
                                                 }
                                                 else Log.Warning($"{Flag} is an unknown flag.");
@@ -203,6 +217,8 @@ namespace Rythmos.Handlers
                     }
                     catch (Exception Error)
                     {
+                        Downloading = false;
+                        Started = false;
                         Reconnect = true;
                         Client?.Close();
                         Log.Error("Request: " + Error.Message);

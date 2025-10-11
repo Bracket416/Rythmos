@@ -722,7 +722,7 @@ namespace Rythmos.Handlers
                             ID_Mapping[Name] = O.ObjectIndex;
                             Set_Customize(Name);
                             Log.Information($"Recustomizing {Name}.");
-                            if (Glamour.Ready) Set_Glamour(Name, Glamours[Name]);
+                            if (Glamour.Ready && Glamours.ContainsKey(Name)) Set_Glamour(Name, Glamours[Name]);
                             Recustomize.Remove(Name);
                         }
                         if (Mods.ContainsKey(Name) && Character_Changed) Changed = true;
@@ -802,7 +802,7 @@ namespace Rythmos.Handlers
                             foreach (var Setting in Glamour_Buffer) if (ID_Mapping.ContainsKey(Setting.Key)) Set_Glamour(Setting.Key, Setting.Value);
                             Glamour_Buffer = new Dictionary<string, string>(Glamour_Buffer.Where(X => !ID_Mapping.ContainsKey(X.Key)));
                         }
-                        if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading && New_T - Request_T > 10000000) foreach (var Friend in Networking.C.Friends) if (File_Time_Mapping.ContainsKey(Friend) && Server_Time_Mapping.ContainsKey(Friend) ? File_Time_Mapping[Friend] < Server_Time_Mapping[Friend] : false)
+                        if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading && New_T - Request_T > 50000000) foreach (var Friend in Networking.C.Friends) if (File_Time_Mapping.ContainsKey(Friend) && Server_Time_Mapping.ContainsKey(Friend) ? File_Time_Mapping[Friend] < Server_Time_Mapping[Friend] : false)
                                 {
                                     Request_T = New_T;
                                     Networking.Send(Encoding.UTF8.GetBytes(Friend), 2);
