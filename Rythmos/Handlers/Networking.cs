@@ -54,6 +54,8 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
+        public static string Version = "0.2.6.7";
+
         public static Task Send(byte[] Data, byte Type)
         {
             return Task.Run(() =>
@@ -283,7 +285,7 @@ namespace Rythmos.Handlers
                     Queue.Start(S);
                     if (Name.Length > 0)
                     {
-                        Networking.Send(UTF8.GetBytes(Name + " " + ID), 0);
+                        Networking.Send(UTF8.GetBytes(Name + " " + ID + " " + Version), 0);
                         F.RunOnFrameworkThread(() => Characters.Update_Glamour(Characters.Client.LocalPlayer.Address));
                     }
                     Getter = Get();
