@@ -34,7 +34,7 @@ namespace Rythmos.Handlers
 
         private static NetworkStream S;
 
-        public static string Progress = "";
+        public static string Progress = "Upload Pack";
 
         public static bool Downloading = false;
 
@@ -54,7 +54,7 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
-        public static string Version = "0.2.6.7";
+        public static string Version = "0.2.6.8";
 
         public static Task Send(byte[] Data, byte Type)
         {
@@ -137,7 +137,7 @@ namespace Rythmos.Handlers
                                         case 1:
                                             {
                                                 var Message = Total.Take((int)Size + 6).Skip(6).ToArray();
-                                                if (UTF8.GetString(Message) == Name) Progress = "";
+                                                if (UTF8.GetString(Message) == Name) Progress = "Upload Pack";
                                                 break;
                                             }
                                         case 2:
@@ -267,6 +267,7 @@ namespace Rythmos.Handlers
                 Log.Information("Connecting!");
                 try
                 {
+                    Progress = "Upload Pack";
                     Downloading = false;
                     Cancel.Cancel();
                     Cancel.Dispose();

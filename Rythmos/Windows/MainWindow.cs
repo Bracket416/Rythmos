@@ -97,8 +97,12 @@ public class MainWindow : Window, IDisposable
                         if (Add && !General_Packing) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name), 2);
                         Add = false;
                         ImGui.Spacing();
-                        ImGui.Checkbox($"{(Networking.Progress.Length == 0 ? "Upload Pack" : Networking.Progress)}##Rythmos Button", ref Add);
-                        if (Add && !General_Packing) P.Uploading(Networking.Name);
+                        ImGui.Checkbox($"{Networking.Progress}##Rythmos Button", ref Add);
+                        if (Add && !General_Packing && Networking.Progress == "Upload Pack")
+                        {
+                            Networking.Progress = "Uploading";
+                            P.Uploading(Networking.Name);
+                        }
                         Add = false;
                         var Previous = P.Configuration.Sync_Glamourer;
                         ImGui.Spacing();
