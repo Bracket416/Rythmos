@@ -426,6 +426,7 @@ namespace Rythmos.Handlers
 
         public static Task Pack(string Name, Mod_Configuration M, uint Type = 0)
         {
+            var Current_Files = Get_Resources.Invoke()[0].Keys.ToList().Select(X => X.ToLower()).ToList();
             return Task.Run(() =>
             {
                 Log.Information("Packing: " + Rythmos_Path + $"\\Compressed\\{Name}.zip");
@@ -435,7 +436,6 @@ namespace Rythmos.Handlers
                     {
                         try
                         {
-                            var Current_Files = Get_Resources.Invoke()[0].Keys.ToList().Select(X => X.ToLower()).ToList();
                             var Paths = new List<string>();
                             M.Mods.ToList().ForEach(X => Paths.Add(Penumbra_Path + "\\" + X.Value.Item1));
                             List<string> Required_Materials = [];
@@ -802,7 +802,7 @@ namespace Rythmos.Handlers
                             foreach (var Setting in Glamour_Buffer) if (ID_Mapping.ContainsKey(Setting.Key)) Set_Glamour(Setting.Key, Setting.Value);
                             Glamour_Buffer = new Dictionary<string, string>(Glamour_Buffer.Where(X => !ID_Mapping.ContainsKey(X.Key)));
                         }
-                        if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading && New_T - Request_T > 50000000) foreach (var Friend in Networking.C.Friends) if (File_Time_Mapping.ContainsKey(Friend) && Server_Time_Mapping.ContainsKey(Friend) ? File_Time_Mapping[Friend] < Server_Time_Mapping[Friend] : false)
+                        if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading && New_T - Request_T > 100000000) foreach (var Friend in Networking.C.Friends) if (Server_Time_Mapping.ContainsKey(Friend) ? (File_Time_Mapping.ContainsKey(Friend) ? File_Time_Mapping[Friend] < Server_Time_Mapping[Friend] : true) : false)
                                 {
                                     Request_T = New_T;
                                     Networking.Send(Encoding.UTF8.GetBytes(Friend), 2);

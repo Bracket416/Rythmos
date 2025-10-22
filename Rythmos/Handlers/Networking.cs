@@ -54,7 +54,7 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
-        public static string Version = "0.2.6.8";
+        public static string Version = "0.2.6.9";
 
         public static Task Send(byte[] Data, byte Type)
         {
@@ -94,6 +94,7 @@ namespace Rythmos.Handlers
                 {
                     try
                     {
+                        Started = false;
                         var Total = new byte[1024 * 1024 * 1024];
                         var Buffer = new byte[512 * 1024];
                         ulong Offset = 0;
