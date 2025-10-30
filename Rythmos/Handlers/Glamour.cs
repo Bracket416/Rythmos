@@ -1,5 +1,6 @@
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using Glamourer.Api.Enums;
 using Glamourer.Api.IpcSubscribers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -29,7 +30,6 @@ namespace Rythmos.Handlers
             Apply = new ApplyState(I);
             Unlock_State = new UnlockState(I);
             Revert_State = new RevertState(I);
-
             E = StateChanged.Subscriber(I, Characters.Update_Glamour);
             try
             {
@@ -68,21 +68,23 @@ namespace Rythmos.Handlers
                     Log.Error("Glamourer Pack: " + Error.Message);
                     return "{}";
                 }
-            } else
+            }
+            else
             {
                 Setup(Interface);
                 return "{}";
             }
         }
 
-        public static void Set(ushort Index, string Data)
+        public static bool Set(ushort Index, string Data)
         {
             if (Ready)
             {
                 try
                 {
                     var A = JsonConvert.DeserializeObject<JObject>(Data);
-                    Apply!.Invoke(A, Index, 416);
+                    var B = Apply!.Invoke(A, Index, 416);
+                    if (B is GlamourerApiEc.Success) return true;
                 }
                 catch (Exception Error)
                 {
@@ -91,6 +93,7 @@ namespace Rythmos.Handlers
                 }
             }
             else Setup(Interface);
+            return false;
         }
         public static void Unlock(ushort Index)
         {
@@ -105,7 +108,8 @@ namespace Rythmos.Handlers
                     Log.Error("Unlock: " + Error.Message);
                     Ready = false;
                 }
-            } else Setup(Interface);
+            }
+            else Setup(Interface);
         }
 
         public static void Revert(ushort Index)

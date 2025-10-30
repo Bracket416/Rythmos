@@ -623,11 +623,14 @@ namespace Rythmos.Handlers
                 foreach (var Mod in Mod_Data)
                 {
                     var Remove = new List<string>();
-                    foreach (var Entry in Mod.Value.Item1.Item2) if (Types.Any(Entry.Value.StartsWith))
+                    foreach (var Entry in Mod.Value.Item1.Item2)
+                    {
+                        if (Types.Any(Entry.Value.StartsWith))
                         {
                             if (!Data_Manager.FileExists(Entry.Value.Replace("\\", "/")) && Origins[Entry.Value].Count <= 1) Remove.Add(Entry.Key);
                         }
                         else if (!File.Exists(Entry.Value)) Remove.Add(Entry.Key);
+                    }
                     foreach (var Key in Remove) Mod.Value.Item1.Item2.Remove(Key);
                 }
                 foreach (var Mod in Mod_Data) Temporary_Mod_Adder.Invoke(Mod.Key, Collection_Mapping[Name], Mod.Value.Item1.Item2, Modifications.Length == 0 ? Mod.Value.Item1.Item1 : "", Mod.Value.Item2).ToString();
@@ -664,7 +667,7 @@ namespace Rythmos.Handlers
             if (Data != null) if (Data.Length > 2)
                 {
                     Glamours[Name] = Data;
-                    if (ID_Mapping.ContainsKey(Name)) Glamour.Set(ID_Mapping[Name], Data);
+                    if (ID_Mapping.ContainsKey(Name)) if (!Glamour.Set(ID_Mapping[Name], Data)) Recustomize.Add(Name);
                 }
         }
 
@@ -722,8 +725,8 @@ namespace Rythmos.Handlers
                             ID_Mapping[Name] = O.ObjectIndex;
                             Set_Customize(Name);
                             Log.Information($"Recustomizing {Name}.");
-                            if (Glamour.Ready && Glamours.ContainsKey(Name)) Set_Glamour(Name, Glamours[Name]);
                             Recustomize.Remove(Name);
+                            if (Glamour.Ready && Glamours.ContainsKey(Name)) Set_Glamour(Name, Glamours[Name]);
                         }
                         if (Mods.ContainsKey(Name) && Character_Changed) Changed = true;
                         Entities.Add(Name);
@@ -802,7 +805,7 @@ namespace Rythmos.Handlers
                             foreach (var Setting in Glamour_Buffer) if (ID_Mapping.ContainsKey(Setting.Key)) Set_Glamour(Setting.Key, Setting.Value);
                             Glamour_Buffer = new Dictionary<string, string>(Glamour_Buffer.Where(X => !ID_Mapping.ContainsKey(X.Key)));
                         }
-                        if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading && New_T - Request_T > 100000000) foreach (var Friend in Networking.C.Friends) if (Server_Time_Mapping.ContainsKey(Friend) ? (File_Time_Mapping.ContainsKey(Friend) ? File_Time_Mapping[Friend] < Server_Time_Mapping[Friend] : true) : false)
+                        if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading && New_T - Request_T > 100000000) foreach (var Friend in Networking.C.Friends) if (File_Time_Mapping.ContainsKey(Friend) && Server_Time_Mapping.ContainsKey(Friend) ? File_Time_Mapping[Friend] < Server_Time_Mapping[Friend] : false)
                                 {
                                     Request_T = New_T;
                                     Networking.Send(Encoding.UTF8.GetBytes(Friend), 2);
