@@ -645,7 +645,7 @@ namespace Rythmos.Handlers
                 try
                 {
                     Set_Customize(Name);
-                    Set_Glamour(Name, Glamours[Name] ?? string.Empty);
+                    Set_Glamour(Name, Glamours.ContainsKey(Name) ? Glamours[Name] ?? string.Empty : string.Empty);
                     Redraw_Character(Name);
                     if (Pets.ContainsKey(Name)) Redraw.Invoke(Pets[Name]);
                     if (Minions.ContainsKey(Name)) Redraw.Invoke(Minions[Name]);

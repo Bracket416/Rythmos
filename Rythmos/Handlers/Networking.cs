@@ -6,10 +6,8 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static FFXIVClientStructs.FFXIV.Component.GUI.AtkTimer.Delegates;
 using static System.Text.Encoding;
 
 namespace Rythmos.Handlers
@@ -190,6 +188,7 @@ namespace Rythmos.Handlers
                                                             {
                                                                 if (Characters.ID_Mapping.ContainsKey(File_Name))
                                                                 {
+                                                                    Characters.Glamours.Remove(File_Name);
                                                                     Characters.Set_Collection(Characters.ID_Mapping[File_Name]);
                                                                     Characters.Load(File_Name);
                                                                     Characters.Prepare(File_Name);
