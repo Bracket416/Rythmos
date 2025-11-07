@@ -52,7 +52,7 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
-        public static string Version = "0.2.7.2";
+        public static string Version = "0.2.7.3";
 
         public static Task Send(byte[] Data, byte Type)
         {
@@ -153,7 +153,6 @@ namespace Rythmos.Handlers
                                                         var Split_Part = Part.Split(" ");
                                                         var T = long.Parse(Split_Part[3]);
                                                         var Character = string.Join(" ", Split_Part.Take(3));
-                                                        var Zipped = Characters.Rythmos_Path + $"\\Compressed\\{Character}.zip";
                                                         Characters.Server_Time_Mapping[Character] = T;
                                                     }
                                                 break;
@@ -181,7 +180,7 @@ namespace Rythmos.Handlers
                                                     Networking.Send(UTF8.GetBytes(File_Name), 5);
                                                     for (ulong I = 0; I < (ulong)Output.Length; I++) Output[I] = Total[I + 6 + ((ulong)Name_Offset)];
                                                     Characters.Locked[File_Name] = true;
-                                                    File.WriteAllBytes(Characters.Rythmos_Path + "\\Compressed\\" + File_Name + ".zip", Output); // This should be a stream in the future for large file sizes.
+                                                    File.WriteAllBytes(Characters.Get_Available(File_Name), Output); // This should be a stream in the future for large file sizes.
                                                     try
                                                     {
                                                         if (Characters.Unpack(File_Name)) F.RunOnFrameworkThread(() =>

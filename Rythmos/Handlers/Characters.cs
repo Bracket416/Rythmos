@@ -141,6 +141,54 @@ namespace Rythmos.Handlers
             }
         }
 
+        private static string Archive_Name(string Name, int Index) => Rythmos_Path + "\\Compressed\\" + (Name + " " + Index.ToString()).Replace(" 0", " ").Trim() + ".zip";
+
+        public static string Get_Newest(string Name)
+        {
+            Log.Info($"Getting {Name}!");
+            var Compressed_Path = Rythmos_Path + "\\Compressed";
+            var Candidates = Directory.GetFiles(Compressed_Path).ToList().FindAll(X => X.Split(Compressed_Path)[^1].StartsWith("\\" + Name));
+            if (Candidates.Count == 0) return null;
+            var True = Candidates.MaxBy(File.GetLastWriteTime);
+            foreach (var Candidate in Candidates) if (Candidate != True)
+                {
+                    try
+                    {
+                        File.Delete(Candidate);
+                    }
+                    catch (IOException E)
+                    {
+                        Log.Error("An error occurred while deleting an old archive: " + E.Message);
+                    }
+                }
+            Log.Information($"The newest version of {Name} is {True}.");
+            return True;
+        }
+
+        public static string Get_Available(string Name)
+        {
+            var Index = -1;
+            var Locked = false;
+            do
+            {
+                Index++;
+                try
+                {
+                    if (!File.Exists(Archive_Name(Name, Index))) break;
+                    using (FileStream S = new FileInfo(Archive_Name(Name, Index)).Open(FileMode.Open, FileAccess.Read, FileShare.None))
+                    {
+                        S.Close();
+                    }
+                    Locked = false;
+                }
+                catch (IOException)
+                {
+                    Locked = true;
+                }
+            } while (Locked);
+            return Archive_Name(Name, Index);
+        }
+
         public static string Get_Name(ushort ID)
         {
             if (ID < Objects.Length)
@@ -156,10 +204,10 @@ namespace Rythmos.Handlers
 
         public static bool Create_Collection(string Name)
         {
-            if (Mods.ContainsKey(Name) ? true : (File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") || (File.Exists(Rythmos_Path + $"\\Compressed\\{Name}.zip") && (Locked.ContainsKey(Name) ? !Locked[Name] : true))))
+            if (Mods.ContainsKey(Name) ? true : (File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") || (Get_Newest(Name) != null && (Locked.ContainsKey(Name) ? !Locked[Name] : true))))
             {
                 File_Time_Mapping[Name] = 0;
-                if ((File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") ? File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") < File.GetLastWriteTime(Rythmos_Path + $"\\Compressed\\{Name}.zip") : true) && File.Exists(Rythmos_Path + $"\\Compressed\\{Name}.zip")) Unpack(Name);
+                if (Get_Newest(Name) != null ? (File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") ? File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") < File.GetLastWriteTime(Get_Newest(Name)) : true) : false) Unpack(Name);
                 if (File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json"))
                 {
                     File_Time_Mapping[Name] = new DateTimeOffset(File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json")).ToUnixTimeMilliseconds();
@@ -571,8 +619,8 @@ namespace Rythmos.Handlers
         }
         public static bool Unpack(string Name)
         {
-            var Zip_Path = Rythmos_Path + $"\\Compressed\\{Name}.zip";
-            if (File.Exists(Zip_Path))
+            var Zip_Path = Get_Newest(Name);
+            if (Zip_Path != null)
             {
                 if (Directory.Exists(Rythmos_Path + $"\\Mods\\{Name}")) Directory.Delete(Rythmos_Path + $"\\Mods\\{Name}", true);
                 try
@@ -789,9 +837,8 @@ namespace Rythmos.Handlers
                             else foreach (var Member in Party) Party_Members.Add(Member.Name + " " + Member.World.Value.Name.ExtractText());
                             foreach (var Friend in Party_Members) if (Networking.C.Friends.Contains(Friend))
                                 {
-                                    var Friend_Path = Rythmos_Path + "\\Compressed\\" + Friend + ".zip";
                                     Party_Friends.Add(Friend);
-                                    if (File.Exists(Friend_Path) && !Collection_Mapping.ContainsKey(Friend))
+                                    if (Get_Newest(Friend) != null && !Collection_Mapping.ContainsKey(Friend))
                                     {
                                         Background_T = New_T;
                                         Create_Collection(Friend);
