@@ -1,6 +1,8 @@
 using Dalamud.Plugin.Services;
+using Newtonsoft.Json;
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -8,6 +10,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using static Rythmos.Handlers.Characters;
 using static System.Text.Encoding;
 
 namespace Rythmos.Handlers
@@ -52,7 +55,7 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
-        public static string Version = "0.2.7.3";
+        public static string Version = "0.2.7.6";
 
         public static Task Send(byte[] Data, byte Type)
         {
@@ -105,10 +108,10 @@ namespace Rythmos.Handlers
                             if (Offset >= 6)
                             {
                                 var Size = (ulong)(Total[0] * Math.Pow(256, 4) + Total[1] * Math.Pow(256, 3) + Total[2] * Math.Pow(256, 2) + Total[3] * 256 + Total[4]);
-                                if (Total[5] >= 220) Downloading = true;
-                                if (Downloading && Size > (ulong)(Total[5] - 220))
+                                if (Total[5] >= 10) Downloading = true;
+                                if (Downloading && Size > (ulong)(Total[5] - 10))
                                 {
-                                    var Downloading_Name = UTF8.GetString(Total.Skip(6).Take(Total[5] - 220).ToArray());
+                                    var Downloading_Name = UTF8.GetString(Total.Skip(6).Take(Total[5] - 10).ToArray());
                                     if (!Started) Networking.Send(UTF8.GetBytes(Downloading_Name), 6);
                                     Download_Progress = $" — Downloading {Downloading_Name} (" + (100 * Offset / Size) + "%)";
                                     Characters.Requesting[Downloading_Name] = TimeProvider.System.GetTimestamp();
@@ -117,9 +120,9 @@ namespace Rythmos.Handlers
                                 //if (Downloading) Log.Information("Download: " + (100 * Offset / Size) + "%");
                                 while (Offset >= Size + 6) // The data has been totally processed.
                                 {
-                                    if (Total[5] >= 220)
+                                    if (Total[5] >= 10)
                                     {
-                                        var Downloading_Name = UTF8.GetString(Total.Skip(6).Take(Total[5] - 220).ToArray());
+                                        var Downloading_Name = UTF8.GetString(Total.Skip(6).Take(Total[5] - 10).ToArray());
                                         if (!Started) Networking.Send(UTF8.GetBytes(Downloading_Name), 6);
                                         Characters.Requesting[Downloading_Name] = TimeProvider.System.GetTimestamp();
                                         Started = true;
@@ -172,38 +175,125 @@ namespace Rythmos.Handlers
                                             }
                                         default:
                                             {
-                                                if (Flag >= 220)
+                                                if (Flag >= 10)
                                                 {
-                                                    var Name_Offset = Flag - 220;
+                                                    var Name_Offset = Flag - 10;
                                                     var File_Name = UTF8.GetString(Total.Skip(6).Take(Name_Offset).ToArray());
-                                                    var Output = new byte[Size - ((ulong)Name_Offset)];
-                                                    Networking.Send(UTF8.GetBytes(File_Name), 5);
-                                                    for (ulong I = 0; I < (ulong)Output.Length; I++) Output[I] = Total[I + 6 + ((ulong)Name_Offset)];
-                                                    Characters.Locked[File_Name] = true;
-                                                    File.WriteAllBytes(Characters.Get_Available(File_Name), Output); // This should be a stream in the future for large file sizes.
-                                                    try
+                                                    var Character_Name = string.Join(" ", File_Name.Split(" ").Take(3));
+                                                    Log.Information(File_Name);
+                                                    if (File_Name.Split(" ").Length <= 3)
                                                     {
-                                                        if (Characters.Unpack(File_Name)) F.RunOnFrameworkThread(() =>
-                                                            {
-                                                                if (Characters.ID_Mapping.ContainsKey(File_Name))
+                                                        Characters.Locked[File_Name] = true;
+                                                        var Output = new byte[Size - ((ulong)Name_Offset)];
+                                                        Networking.Send(UTF8.GetBytes(File_Name), 5);
+                                                        for (ulong I = 0; I < (ulong)Output.Length; I++) Output[I] = Total[I + 6 + ((ulong)Name_Offset)];
+                                                        File.WriteAllBytes(Characters.Get_Available(File_Name), Output); // This should be a stream in the future for large file sizes.
+                                                        try
+                                                        {
+                                                            if (Characters.Unpack(File_Name)) F.RunOnFrameworkThread(() =>
                                                                 {
-                                                                    Characters.Glamours.Remove(File_Name);
-                                                                    Characters.Set_Collection(Characters.ID_Mapping[File_Name]);
-                                                                    Characters.Load(File_Name);
-                                                                    Characters.Prepare(File_Name);
-                                                                    Characters.Enable(File_Name);
-                                                                }
-                                                                Characters.File_Time_Mapping[File_Name] = Characters.Server_Time_Mapping[File_Name];
-                                                            });
+                                                                    if (Characters.ID_Mapping.ContainsKey(File_Name))
+                                                                    {
+                                                                        Characters.Glamours.Remove(File_Name);
+                                                                        Characters.Set_Collection(Characters.ID_Mapping[File_Name]);
+                                                                        Characters.Load(File_Name);
+                                                                        Characters.Prepare(File_Name);
+                                                                        Characters.Enable(File_Name);
+                                                                    }
+                                                                    Characters.File_Time_Mapping[File_Name] = Characters.Server_Time_Mapping[File_Name];
+                                                                });
+                                                        }
+                                                        catch (Exception Error)
+                                                        {
+                                                            Log.Error("Request Unpacking: " + Error.Message);
+                                                        }
+                                                        Characters.Locked[File_Name] = false;
+                                                        Downloading = false;
+                                                        Started = false;
+                                                        Download_Progress = "";
                                                     }
-                                                    catch (Exception Error)
+                                                    else
                                                     {
-                                                        Log.Error("Request Unpacking: " + Error.Message);
+                                                        if (!Directory.Exists(Rythmos_Path + "\\Parts\\" + Character_Name)) Directory.CreateDirectory(Rythmos_Path + "\\Parts\\" + Character_Name);
+                                                        Log.Information(File_Name);
+                                                        Characters.Locked[Character_Name] = true;
+                                                        var Part = int.Parse(File_Name.Split(" ")[3]);
+                                                        var End = false;
+                                                        var Skip = File_Name.EndsWith("Skip");
+                                                        if (Part == -1)
+                                                        {
+                                                            File_Name = "Configuration.json";
+                                                            try
+                                                            {
+                                                                if (Directory.Exists(Rythmos_Path + "\\Mods\\" + Character_Name)) Directory.Delete(Rythmos_Path + "\\Mods\\" + Character_Name, true);
+                                                            }
+                                                            catch (Exception Error)
+                                                            {
+                                                                Log.Error("Request: " + Error.Message);
+                                                            }
+                                                            try
+                                                            {
+                                                                if (File.Exists(Rythmos_Path + "\\Compressed\\" + Character_Name + ".zip")) File.Delete(Rythmos_Path + "\\Compressed\\" + Character_Name + ".zip");
+                                                            }
+                                                            catch (Exception Error)
+                                                            {
+                                                                Log.Error("Request: " + Error.Message);
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            try
+                                                            {
+                                                                var Mods = JsonConvert.DeserializeObject<Mod_Configuration>(File.ReadAllText(Rythmos_Path + $"\\Parts\\{Character_Name}\\Configuration.json")).Mods.Keys;
+                                                                File_Name = Mods.Order().ElementAt(Part) + ".zip";
+                                                                Log.Information("Part End: " + End);
+                                                                End = Part + 1 == Mods.Count;
+                                                            }
+                                                            catch (Exception Error)
+                                                            {
+                                                                if (File.Exists(Rythmos_Path + $"\\Parts\\{Character_Name}\\Configuration.json")) File.Delete(Rythmos_Path + $"\\Parts\\{Character_Name}\\Configuration.json");
+                                                                Log.Error($"An error occurred while decoding part {Part} of {Character_Name}: {Error.Message}");
+                                                                File_Name = null;
+                                                            }
+                                                        }
+                                                        if (File_Name != null)
+                                                        {
+                                                            File_Name = Rythmos_Path + $"\\Parts\\{Character_Name}\\" + File_Name;
+                                                            if (!Skip)
+                                                            {
+                                                                var Output = new byte[Size - ((ulong)Name_Offset)];
+                                                                for (ulong I = 0; I < (ulong)Output.Length; I++) Output[I] = Total[I + 6 + ((ulong)Name_Offset)];
+                                                                File.WriteAllBytes(File_Name, Output);
+                                                            }
+                                                            Log.Information((Skip ? "Skipped" : "Received") + $" {Character_Name} " + Part);
+                                                            if (Part == -1) if (JsonConvert.DeserializeObject<Mod_Configuration>(File.ReadAllText(File_Name)).Mods.Keys.Count == 0) End = true;
+                                                            if (End)
+                                                            {
+                                                                var Configuration = Rythmos_Path + $"\\Parts\\{Character_Name}\\Configuration.json";
+                                                                if (!Directory.Exists(Rythmos_Path + $"\\Mods\\{Character_Name}")) Directory.CreateDirectory(Rythmos_Path + $"\\Mods\\{Character_Name}");
+                                                                foreach (var Mod in JsonConvert.DeserializeObject<Mod_Configuration>(File.ReadAllText(Configuration)).Mods.Keys) ZipFile.ExtractToDirectory(Rythmos_Path + "\\Parts\\" + Character_Name + "\\" + Mod + ".zip", Rythmos_Path + "\\Mods\\" + Character_Name + "\\" + Mod);
+                                                                File.Copy(Configuration, Rythmos_Path + $"\\Mods\\{Character_Name}\\Configuration.json");
+                                                                Characters.File_Time_Mapping[Character_Name] = new DateTimeOffset(File.GetLastWriteTimeUtc(Rythmos_Path + $"\\Mods\\{Character_Name}\\Configuration.json")).ToUnixTimeMilliseconds();
+                                                                Networking.Send(UTF8.GetBytes(Character_Name), 5);
+                                                                Characters.Locked[Character_Name] = false;
+                                                                Downloading = false;
+                                                                Started = false;
+                                                                Download_Progress = "";
+                                                            }
+                                                            else
+                                                            {
+                                                                var Next = Rythmos_Path + $"\\Parts\\{Character_Name}\\{JsonConvert.DeserializeObject<Mod_Configuration>(File.ReadAllText(Rythmos_Path + $"\\Parts\\{Character_Name}\\Configuration.json")).Mods.Keys.Order().ElementAt(Part + 1)}.zip";
+                                                                Networking.Send(UTF8.GetBytes(Character_Name + " " + (Part + 1) + " " + (File.Exists(Next) ? new DateTimeOffset(File.GetLastWriteTimeUtc(Next)).ToUnixTimeMilliseconds() : 0)), 2);
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            Characters.Locked[Character_Name] = false;
+                                                            Downloading = false;
+                                                            Started = false;
+                                                            Download_Progress = "";
+                                                        }
                                                     }
-                                                    Characters.Locked[File_Name] = false;
-                                                    Downloading = false;
-                                                    Started = false;
-                                                    Download_Progress = "";
                                                 }
                                                 else Log.Warning($"{Flag} is an unknown flag.");
                                                 break;

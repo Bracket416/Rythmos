@@ -19,6 +19,8 @@ using System.IO.Compression;
 using System.Linq;
 using System.Runtime;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.Unicode;
 using System.Threading.Tasks;
 namespace Rythmos.Handlers
@@ -37,23 +39,37 @@ namespace Rythmos.Handlers
 
         private static long Request_T = 0;
 
+        public class Mod_Entry
+        {
+            public string Item1;
+            public int Item2;
+            public Dictionary<string, List<string>> Item3;
+            public Mod_Entry(string I1, int I2, Dictionary<string, List<string>> I3)
+            {
+                Item1 = I1;
+                Item2 = I2;
+                Item3 = I3 ?? new Dictionary<string, List<string>> { };
+            }
+
+        }
         public class Mod_Configuration
         {
 
-            public string Meta = "";
+            public string Meta { get; set; } = "";
 
-            public string Bones = "";
+            public string Bones { get; set; } = "";
 
-            public string Glamour = "";
+            public string Glamour { get; set; } = "";
 
-            public Dictionary<string, Tuple<string, int, Dictionary<string, List<string>>>> Mods = new();
+            public Dictionary<string, Mod_Entry> Mods { get; set; } = new();
 
-            public Mod_Configuration(string Bones, string Glamour, string Meta, Dictionary<string, Tuple<string, int, Dictionary<string, List<string>>>> Mods)
+            public Mod_Configuration() { }
+            public Mod_Configuration(string Bones, string Glamour, string Meta, Dictionary<string, Mod_Entry> Mods)
             {
                 this.Bones = Bones;
                 this.Glamour = Glamour;
                 this.Meta = Meta;
-                this.Mods = Mods;
+                this.Mods = Mods ?? new Dictionary<string, Mod_Entry>();
             }
         }
 
@@ -145,11 +161,11 @@ namespace Rythmos.Handlers
 
         public static string Get_Newest(string Name)
         {
-            Log.Info($"Getting {Name}!");
+            //Log.Info($"Getting {Name}!");
             var Compressed_Path = Rythmos_Path + "\\Compressed";
             var Candidates = Directory.GetFiles(Compressed_Path).ToList().FindAll(X => X.Split(Compressed_Path)[^1].StartsWith("\\" + Name));
             if (Candidates.Count == 0) return null;
-            var True = Candidates.MaxBy(File.GetLastWriteTime);
+            var True = Candidates.MaxBy(File.GetLastWriteTimeUtc);
             foreach (var Candidate in Candidates) if (Candidate != True)
                 {
                     try
@@ -204,13 +220,15 @@ namespace Rythmos.Handlers
 
         public static bool Create_Collection(string Name)
         {
-            if (Mods.ContainsKey(Name) ? true : (File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") || (Get_Newest(Name) != null && (Locked.ContainsKey(Name) ? !Locked[Name] : true))))
+            var Newest_Version = Get_Newest(Name);
+            var Configuration_Exists = File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json");
+            if (Mods.ContainsKey(Name) ? true : ((Configuration_Exists || Newest_Version != null) && (Locked.ContainsKey(Name) ? !Locked[Name] : true)))
             {
                 File_Time_Mapping[Name] = 0;
-                if (Get_Newest(Name) != null ? (File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") ? File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") < File.GetLastWriteTime(Get_Newest(Name)) : true) : false) Unpack(Name);
-                if (File.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json"))
+                if (Newest_Version != null ? (Configuration_Exists ? (File.GetLastWriteTimeUtc(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json") < File.GetLastWriteTimeUtc(Newest_Version)) : true) : false) Unpack(Name);
+                if (Configuration_Exists)
                 {
-                    File_Time_Mapping[Name] = new DateTimeOffset(File.GetLastWriteTime(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json")).ToUnixTimeMilliseconds();
+                    File_Time_Mapping[Name] = new DateTimeOffset(File.GetLastWriteTimeUtc(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json")).ToUnixTimeMilliseconds();
                     Log.Information($"Creating the collection of {Name}!");
                     Collection_Creator.Invoke(Name, Name, out var Collection_ID);
                     Collection_Mapping.Add(Name, Collection_ID);
@@ -330,7 +348,7 @@ namespace Rythmos.Handlers
             public IMC_Manipulation Manipulation;
         }
 
-        private static Tuple<string, Dictionary<string, string>> Parse_Mod(string Name, Tuple<string, int, Dictionary<string, List<string>>> Settings, bool Check_Files = true)
+        private static Tuple<string, Dictionary<string, string>> Parse_Mod(string Name, Mod_Entry Settings, bool Check_Files = true)
         {
             var Output = new Dictionary<string, string>();
             try
@@ -444,7 +462,7 @@ namespace Rythmos.Handlers
         public static Mod_Configuration Gather_Mods(string Name)
         {
             // Later, I can provide a filtering argument of sorts, like a list of changed mods.
-            var Settings = new Dictionary<string, Tuple<string, int, Dictionary<string, List<string>>>>(); // Mod -> (File Path, Priority, Group Settings)
+            var Settings = new Dictionary<string, Mod_Entry>(); // Mod -> (File Path, Priority, Group Settings)
             if (Client.LocalPlayer != null)
             {
                 foreach (var O in Objects) if (O.ObjectKind is Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player) if (Get_Name(O.ObjectIndex) == Name)
@@ -456,7 +474,7 @@ namespace Rythmos.Handlers
                                 var C = Collection_Getter.Invoke(O.ObjectIndex).EffectiveCollection.Id;
                                 Log.Information($"The collection is {C}.");
                                 var S = Settings_Getter.Invoke(C);
-                                foreach (var Mod in S.Item2.Keys) if (S.Item2[Mod].Item1) Settings.Add(Mod, Tuple.Create(Mod, S.Item2[Mod].Item2, S.Item2[Mod].Item3));
+                                foreach (var Mod in S.Item2.Keys) if (S.Item2[Mod].Item1) Settings.Add(Mod, new Mod_Entry(Mod, S.Item2[Mod].Item2, S.Item2[Mod].Item3));
                                 return new Mod_Configuration(Customize.Pack_Bones(O.ObjectIndex), Glamour.Pack(O.ObjectIndex), Get_Meta.Invoke(O.ObjectIndex), Settings);
                             }
                         }
@@ -838,11 +856,13 @@ namespace Rythmos.Handlers
                             foreach (var Friend in Party_Members) if (Networking.C.Friends.Contains(Friend))
                                 {
                                     Party_Friends.Add(Friend);
-                                    if (Get_Newest(Friend) != null && !Collection_Mapping.ContainsKey(Friend))
+                                    if (!Collection_Mapping.ContainsKey(Friend))
                                     {
-                                        Background_T = New_T;
-                                        Create_Collection(Friend);
-                                        break;
+                                        if (Create_Collection(Friend))
+                                        {
+                                            Background_T = New_T;
+                                            break;
+                                        }
                                     }
                                 }
                         }
@@ -852,7 +872,8 @@ namespace Rythmos.Handlers
                             foreach (var Setting in Glamour_Buffer) if (ID_Mapping.ContainsKey(Setting.Key)) Set_Glamour(Setting.Key, Setting.Value);
                             Glamour_Buffer = new Dictionary<string, string>(Glamour_Buffer.Where(X => !ID_Mapping.ContainsKey(X.Key)));
                         }
-                        if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading && New_T - Request_T > 100000000) foreach (var Friend in Networking.C.Friends) if (File_Time_Mapping.ContainsKey(Friend) && Server_Time_Mapping.ContainsKey(Friend) ? File_Time_Mapping[Friend] < Server_Time_Mapping[Friend] : false)
+                        var Everyone = Networking.C.Friends.FindAll(X => Entities.Contains(X) || Party_Friends.Contains(X));
+                        if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading && New_T - Request_T > 100000000) foreach (var Friend in Everyone) if (File_Time_Mapping.ContainsKey(Friend) && Server_Time_Mapping.ContainsKey(Friend) ? File_Time_Mapping[Friend] < Server_Time_Mapping[Friend] : Server_Time_Mapping.ContainsKey(Friend) && (Locked.ContainsKey(Friend) ? !Locked[Friend] : true))
                                 {
                                     Request_T = New_T;
                                     Networking.Send(Encoding.UTF8.GetBytes(Friend), 2);
