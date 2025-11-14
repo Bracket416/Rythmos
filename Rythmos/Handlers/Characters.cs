@@ -353,7 +353,7 @@ namespace Rythmos.Handlers
             var Output = new Dictionary<string, string>();
             try
             {
-
+                Log.Information("Parsing " + Name + ".");
                 var Manipulations = new List<Tuple<int, string>>();
                 var Path = Rythmos_Path + $"\\Mods\\{Name}\\" + Settings.Item1;
                 var Priority = Settings.Item2;
@@ -370,7 +370,7 @@ namespace Rythmos.Handlers
                         if (Data.Identifier != null) I.Manipulation = ((JObject)Data.Identifier).ToObject<IMC_Manipulation>();
                         I.Manipulation.Entry = new();
                         if (Data.DefaultEntry != null) I.Manipulation.Entry = ((JObject)Data.DefaultEntry).ToObject<IMC_Entry>();
-                        foreach (var D in Data.Options) if (Settings.Item3[Data.Name].Contains(D.Name)) I.Manipulation.Entry.AttributeMask |= D.AttributeMask;
+                        if (Settings.Item3.ContainsKey(Data.Name)) foreach (var D in Data.Options) if (Settings.Item3[Data.Name].Contains(D.Name)) I.Manipulation.Entry.AttributeMask |= D.AttributeMask;
                         Manipulations.Add(Tuple.Create(Priority + Data.Priority, JsonConvert.SerializeObject(I)));
                         if (Data.AllVariants)
                         {
@@ -378,8 +378,7 @@ namespace Rythmos.Handlers
                             Manipulations.Add(Tuple.Create(Priority + Data.Priority, JsonConvert.SerializeObject(I, Formatting.None)));
                         }
                     }
-                    else
-                        foreach (var D in Data.Options) if (Settings.Item3[Data.Name].Contains(D.Name))
+                    else if (Settings.Item3.ContainsKey(Data.Name)) foreach (var D in Data.Options) if (Settings.Item3[Data.Name].Contains(D.Name))
                             {
                                 D.Priority += Priority + Data.Priority;
                                 Mods.Add(D);

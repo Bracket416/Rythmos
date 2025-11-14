@@ -276,6 +276,25 @@ namespace Rythmos.Handlers
                                                                 Characters.File_Time_Mapping[Character_Name] = new DateTimeOffset(File.GetLastWriteTimeUtc(Rythmos_Path + $"\\Mods\\{Character_Name}\\Configuration.json")).ToUnixTimeMilliseconds();
                                                                 Networking.Send(UTF8.GetBytes(Character_Name), 5);
                                                                 Characters.Locked[Character_Name] = false;
+                                                                try
+                                                                {
+                                                                    F.RunOnFrameworkThread(() =>
+                                                                    {
+                                                                        if (Characters.ID_Mapping.ContainsKey(File_Name))
+                                                                        {
+                                                                            Characters.Glamours.Remove(File_Name);
+                                                                            Characters.Set_Collection(Characters.ID_Mapping[File_Name]);
+                                                                            Characters.Load(File_Name);
+                                                                            Characters.Prepare(File_Name);
+                                                                            Characters.Enable(File_Name);
+                                                                        }
+                                                                        Characters.File_Time_Mapping[File_Name] = Characters.Server_Time_Mapping[File_Name];
+                                                                    });
+                                                                }
+                                                                catch (Exception Error)
+                                                                {
+                                                                    Log.Error("Request Unpacking: " + Error.Message);
+                                                                }
                                                                 Downloading = false;
                                                                 Started = false;
                                                                 Download_Progress = "";
