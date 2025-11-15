@@ -239,15 +239,16 @@ namespace Rythmos.Handlers
                                                             {
                                                                 Log.Error("Request: " + Error.Message);
                                                             }
+                                                            Directory.CreateDirectory(Rythmos_Path + $"\\Mods\\{Character_Name}");
                                                         }
                                                         else
                                                         {
                                                             try
                                                             {
-                                                                var Mods = JsonConvert.DeserializeObject<Mod_Configuration>(File.ReadAllText(Rythmos_Path + $"\\Parts\\{Character_Name}\\Configuration.json")).Mods.Keys;
-                                                                File_Name = Mods.Order().ElementAt(Part) + ".zip";
+                                                                var Order = JsonConvert.DeserializeObject<Mod_Configuration>(File.ReadAllText(Rythmos_Path + $"\\Parts\\{Character_Name}\\Configuration.json")).Order;
+                                                                File_Name = Order[Part] + ".zip";
                                                                 Log.Information("Part End: " + End);
-                                                                End = Part + 1 == Mods.Count;
+                                                                End = Part + 1 == Order.Count;
                                                             }
                                                             catch (Exception Error)
                                                             {
@@ -270,8 +271,6 @@ namespace Rythmos.Handlers
                                                             if (End)
                                                             {
                                                                 var Configuration = Rythmos_Path + $"\\Parts\\{Character_Name}\\Configuration.json";
-                                                                if (!Directory.Exists(Rythmos_Path + $"\\Mods\\{Character_Name}")) Directory.CreateDirectory(Rythmos_Path + $"\\Mods\\{Character_Name}");
-                                                                foreach (var Mod in JsonConvert.DeserializeObject<Mod_Configuration>(File.ReadAllText(Configuration)).Mods.Keys) ZipFile.ExtractToDirectory(Rythmos_Path + "\\Parts\\" + Character_Name + "\\" + Mod + ".zip", Rythmos_Path + "\\Mods\\" + Character_Name + "\\" + Mod);
                                                                 File.Copy(Configuration, Rythmos_Path + $"\\Mods\\{Character_Name}\\Configuration.json");
                                                                 Characters.File_Time_Mapping[Character_Name] = new DateTimeOffset(File.GetLastWriteTimeUtc(Rythmos_Path + $"\\Mods\\{Character_Name}\\Configuration.json")).ToUnixTimeMilliseconds();
                                                                 Networking.Send(UTF8.GetBytes(Character_Name), 5);
@@ -301,7 +300,21 @@ namespace Rythmos.Handlers
                                                             }
                                                             else
                                                             {
-                                                                var Next = Rythmos_Path + $"\\Parts\\{Character_Name}\\{JsonConvert.DeserializeObject<Mod_Configuration>(File.ReadAllText(Rythmos_Path + $"\\Parts\\{Character_Name}\\Configuration.json")).Mods.Keys.Order().ElementAt(Part + 1)}.zip";
+                                                                if (Part > -1)
+                                                                {
+                                                                    try
+                                                                    {
+                                                                        ZipFile.ExtractToDirectory(File_Name, Rythmos_Path + "\\Mods\\" + Character_Name + "\\" + File_Name.Split("\\")[^1].Split(".zip")[0]);
+                                                                    }
+                                                                    catch (Exception Error)
+                                                                    {
+                                                                        Log.Error("Request Unzipping: " + Error.Message);
+                                                                        Part -= 1;
+                                                                    }
+                                                                }
+                                                                var Next_Name = JsonConvert.DeserializeObject<Mod_Configuration>(File.ReadAllText(Rythmos_Path + $"\\Parts\\{Character_Name}\\Configuration.json")).Order[Part + 1];
+                                                                var Next = Rythmos_Path + $"\\Parts\\{Character_Name}\\{Next_Name}.zip";
+                                                                Log.Information($"Requesting {Next_Name} for {Character_Name}.");
                                                                 Networking.Send(UTF8.GetBytes(Character_Name + " " + (Part + 1) + " " + (File.Exists(Next) ? new DateTimeOffset(File.GetLastWriteTimeUtc(Next)).ToUnixTimeMilliseconds() : 0)), 2);
                                                             }
                                                         }

@@ -63,13 +63,15 @@ namespace Rythmos.Handlers
 
             public Dictionary<string, Mod_Entry> Mods { get; set; } = new();
 
-            public Mod_Configuration() { }
-            public Mod_Configuration(string Bones, string Glamour, string Meta, Dictionary<string, Mod_Entry> Mods)
+            public List<string> Order { get; set; } = new();
+
+            public Mod_Configuration(string Bones, string Glamour, string Meta, Dictionary<string, Mod_Entry> Mods, List<string>? Order)
             {
                 this.Bones = Bones;
                 this.Glamour = Glamour;
                 this.Meta = Meta;
                 this.Mods = Mods ?? new Dictionary<string, Mod_Entry>();
+                this.Order = Order ?? this.Mods.Keys.ToList();
             }
         }
 
@@ -474,12 +476,12 @@ namespace Rythmos.Handlers
                                 Log.Information($"The collection is {C}.");
                                 var S = Settings_Getter.Invoke(C);
                                 foreach (var Mod in S.Item2.Keys) if (S.Item2[Mod].Item1) Settings.Add(Mod, new Mod_Entry(Mod, S.Item2[Mod].Item2, S.Item2[Mod].Item3));
-                                return new Mod_Configuration(Customize.Pack_Bones(O.ObjectIndex), Glamour.Pack(O.ObjectIndex), Get_Meta.Invoke(O.ObjectIndex), Settings);
+                                return new Mod_Configuration(Customize.Pack_Bones(O.ObjectIndex), Glamour.Pack(O.ObjectIndex), Get_Meta.Invoke(O.ObjectIndex), Settings, null);
                             }
                         }
-                return new Mod_Configuration("", "", "", Settings);
+                return new Mod_Configuration("", "", "", Settings, null);
             }
-            return new Mod_Configuration("", "", "", Settings);
+            return new Mod_Configuration("", "", "", Settings, null);
         }
 
         public static List<string> Traverse(ResourceNodeDto A)
