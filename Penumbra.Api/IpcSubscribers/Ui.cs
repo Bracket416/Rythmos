@@ -11,6 +11,10 @@ public static class ChangedItemTooltip
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(ChangedItemTooltip)}";
 
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.ChangedItemTooltip"u8;
+
     /// <summary> Create a new event subscriber. </summary>
     public static EventSubscriber<ChangedItemType, uint> Subscriber(IDalamudPluginInterface pi,
         params Action<ChangedItemType, uint>[] actions)
@@ -26,6 +30,10 @@ public static class ChangedItemClicked
 {
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(ChangedItemClicked)}";
+
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.ChangedItemClicked"u8;
 
     /// <summary> Create a new event subscriber. </summary>
     public static EventSubscriber<MouseButton, ChangedItemType, uint> Subscriber(IDalamudPluginInterface pi,
@@ -43,6 +51,10 @@ public static class PreSettingsTabBarDraw
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(PreSettingsTabBarDraw)}";
 
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.PreSettingsTabBarDraw"u8;
+
     /// <summary> Create a new event subscriber. </summary>
     public static EventSubscriber<string, float, float> Subscriber(IDalamudPluginInterface pi, params Action<string, float, float>[] actions)
         => new(pi, Label, actions);
@@ -57,6 +69,10 @@ public static class PreSettingsDraw
 {
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(PreSettingsDraw)}";
+
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.PreSettingsDraw"u8;
 
     /// <summary> Create a new event subscriber. </summary>
     public static EventSubscriber<string> Subscriber(IDalamudPluginInterface pi, params Action<string>[] actions)
@@ -73,6 +89,10 @@ public static class PostEnabledDraw
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(PostEnabledDraw)}";
 
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.PostEnabledDraw"u8;
+
     /// <summary> Create a new event subscriber. </summary>
     public static EventSubscriber<string> Subscriber(IDalamudPluginInterface pi, params Action<string>[] actions)
         => new(pi, Label, actions);
@@ -87,6 +107,10 @@ public static class PostSettingsDraw
 {
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(PostSettingsDraw)}";
+
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.PostSettingsDraw"u8;
 
     /// <summary> Create a new event subscriber. </summary>
     public static EventSubscriber<string> Subscriber(IDalamudPluginInterface pi, params Action<string>[] actions)
@@ -104,6 +128,10 @@ public sealed class OpenMainWindow(IDalamudPluginInterface pi)
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(OpenMainWindow)}.V5";
 
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.OpenMainWindow.V5"u8;
+
     /// <inheritdoc cref="IPenumbraApiUi.OpenMainWindow"/>
     public PenumbraApiEc Invoke(TabType tab, string modDirectory = "", string modName = "")
         => (PenumbraApiEc)Invoke((int)tab, modDirectory, modName);
@@ -118,7 +146,11 @@ public sealed class CloseMainWindow(IDalamudPluginInterface pi)
     : ActionSubscriber(pi, Label)
 {
     /// <summary> The label. </summary>
-    public const string Label = $"Penumbra{nameof(CloseMainWindow)}";
+    public const string Label = $"Penumbra.{nameof(CloseMainWindow)}";
+
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.CloseMainWindow"u8;
 
     /// <inheritdoc cref="IPenumbraApiUi.CloseMainWindow"/>
     public new void Invoke()
@@ -127,4 +159,36 @@ public sealed class CloseMainWindow(IDalamudPluginInterface pi)
     /// <summary> Create a provider. </summary>
     public static ActionProvider Provider(IDalamudPluginInterface pi, IPenumbraApiUi api)
         => new(pi, Label, api.CloseMainWindow);
+}
+
+/// <inheritdoc cref="IPenumbraApiUi.RegisterSettingsSection"/>
+public sealed class RegisterSettingsSection(IDalamudPluginInterface pi)
+    : FuncSubscriber<Action, int>(pi, Label)
+{
+    /// <summary> The label. </summary>
+    public const string Label = $"Penumbra{nameof(RegisterSettingsSection)}";
+
+    /// <inheritdoc cref="IPenumbraApiUi.RegisterSettingsSection"/>
+    public new PenumbraApiEc Invoke(Action draw)
+        => (PenumbraApiEc)base.Invoke(draw);
+
+    /// <summary> Create a provider. </summary>
+    public static FuncProvider<Action, int> Provider(IDalamudPluginInterface pi, IPenumbraApiUi api)
+        => new(pi, Label, draw => (int)api.RegisterSettingsSection(draw));
+}
+
+/// <inheritdoc cref="IPenumbraApiUi.UnregisterSettingsSection"/>
+public sealed class UnregisterSettingsSection(IDalamudPluginInterface pi)
+    : FuncSubscriber<Action, int>(pi, Label)
+{
+    /// <summary> The label. </summary>
+    public const string Label = $"Penumbra{nameof(UnregisterSettingsSection)}";
+
+    /// <inheritdoc cref="IPenumbraApiUi.UnregisterSettingsSection"/>
+    public new PenumbraApiEc Invoke(Action draw)
+        => (PenumbraApiEc)base.Invoke(draw);
+
+    /// <summary> Create a provider. </summary>
+    public static FuncProvider<Action, int> Provider(IDalamudPluginInterface pi, IPenumbraApiUi api)
+        => new(pi, Label, draw => (int)api.UnregisterSettingsSection(draw));
 }

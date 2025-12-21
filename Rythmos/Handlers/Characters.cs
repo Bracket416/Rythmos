@@ -464,7 +464,7 @@ namespace Rythmos.Handlers
         {
             // Later, I can provide a filtering argument of sorts, like a list of changed mods.
             var Settings = new Dictionary<string, Mod_Entry>(); // Mod -> (File Path, Priority, Group Settings)
-            if (Client.LocalPlayer != null)
+            if (Objects.LocalPlayer != null)
             {
                 foreach (var O in Objects) if (O.ObjectKind is Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player) if (Get_Name(O.ObjectIndex) == Name)
                         {
@@ -726,7 +726,7 @@ namespace Rythmos.Handlers
 
         public static void Update_Glamour(nint Address)
         {
-            if (Client.LocalPlayer != null ? Client.LocalPlayer.Address == Address && Networking.C.Sync_Glamourer : false) Networking.Send(Encoding.UTF8.GetBytes(string.Join(", ", Entities) + "|" + Glamour.Pack(Client.LocalPlayer.ObjectIndex)), 4);
+            if (Objects.LocalPlayer != null ? Objects.LocalPlayer.Address == Address && Networking.C.Sync_Glamourer : false) Networking.Send(Encoding.UTF8.GetBytes(string.Join(", ", Entities) + "|" + Glamour.Pack(Objects.LocalPlayer.ObjectIndex)), 4);
         }
 
         public static void Set_Glamour(string Name, string Data)
@@ -763,7 +763,7 @@ namespace Rythmos.Handlers
                     {
                         var Name = Get_Name(O.ObjectIndex);
                         if (!(((BattleChara*)O.Address)->IsFriend) && !Networking.C.Friends.Contains(Name)) continue;
-                        if (O.ObjectIndex == Client.LocalPlayer?.ObjectIndex) continue;
+                        if (O.ObjectIndex == Objects.LocalPlayer?.ObjectIndex) continue;
                         if (Glamour.Ready) if (ID_Mapping.ContainsKey(Name)) if (ID_Mapping[Name] != O.ObjectIndex)
                                 {
                                     Glamour.Unlock(ID_Mapping[Name]);
@@ -819,14 +819,14 @@ namespace Rythmos.Handlers
             {
                 if (Rythmos_Path.Length > 0 && Customize.Ready)
                 {
-                    if (!Client.IsLoggedIn && Client.LocalPlayer is null)
+                    if (!Client.IsLoggedIn && Objects.LocalPlayer is null)
                     {
                         foreach (var Key in Collection_Mapping.Keys.AsEnumerable<string>()) Remove_Collection(Key);
                         T = 0;
                         Background_T = 0;
                         Request_T = 0;
                     }
-                    else if (Client.LocalPlayer is not null)
+                    else if (Objects.LocalPlayer is not null)
                     {
                         if (Glamour.Ready)
                         {
@@ -874,7 +874,7 @@ namespace Rythmos.Handlers
                             Glamour_Buffer = new Dictionary<string, string>(Glamour_Buffer.Where(X => !ID_Mapping.ContainsKey(X.Key)));
                         }
                         var Everyone = Networking.C.Friends.FindAll(X => Entities.Contains(X) || Party_Friends.Contains(X));
-                        if (!((BattleChara*)Client.LocalPlayer.Address)->InCombat && !Networking.Downloading && New_T - Request_T > 100000000) foreach (var Friend in Everyone) if (File_Time_Mapping.ContainsKey(Friend) && Server_Time_Mapping.ContainsKey(Friend) ? File_Time_Mapping[Friend] < Server_Time_Mapping[Friend] : Server_Time_Mapping.ContainsKey(Friend) && (Locked.ContainsKey(Friend) ? !Locked[Friend] : true))
+                        if (!((BattleChara*)Objects.LocalPlayer.Address)->InCombat && !Networking.Downloading && New_T - Request_T > 100000000) foreach (var Friend in Everyone) if (File_Time_Mapping.ContainsKey(Friend) && Server_Time_Mapping.ContainsKey(Friend) ? File_Time_Mapping[Friend] < Server_Time_Mapping[Friend] : Server_Time_Mapping.ContainsKey(Friend) && (Locked.ContainsKey(Friend) ? !Locked[Friend] : true))
                                 {
                                     Request_T = New_T;
                                     Networking.Send(Encoding.UTF8.GetBytes(Friend), 2);

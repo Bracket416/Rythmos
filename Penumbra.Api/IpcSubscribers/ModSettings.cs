@@ -17,6 +17,10 @@ public sealed class GetAvailableModSettings(IDalamudPluginInterface pi)
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(GetAvailableModSettings)}.V5";
 
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.GetAvailableModSettings.V5"u8;
+
     /// <inheritdoc cref="IPenumbraApiModSettings.GetAvailableModSettings"/>
     public new IReadOnlyDictionary<string, (string[], GroupType)>? Invoke(string modDirectory, string modName = "")
         => AvailableModSettings.Create(base.Invoke(modDirectory, modName));
@@ -33,6 +37,10 @@ public sealed class GetCurrentModSettings(IDalamudPluginInterface pi)
 {
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(GetCurrentModSettings)}.V5";
+
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.GetCurrentModSettings.V5"u8;
 
     /// <inheritdoc cref="IPenumbraApiModSettings.GetCurrentModSettings"/>
     public new CurrentSettings Invoke(Guid collectionId, string modDirectory, string modName = "", bool ignoreInheritance = false)
@@ -57,6 +65,10 @@ public sealed class GetCurrentModSettingsWithTemp(IDalamudPluginInterface pi)
 {
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(GetCurrentModSettingsWithTemp)}";
+
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.GetCurrentModSettingsWithTemp"u8;
 
     /// <inheritdoc cref="IPenumbraApiModSettings.GetCurrentModSettingsWithTemp"/>
     public new CurrentSettingsTemp Invoke(Guid collectionId, string modDirectory, string modName = "", bool ignoreInheritance = false,
@@ -83,6 +95,10 @@ public sealed class GetAllModSettings(IDalamudPluginInterface pi)
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(GetAllModSettings)}";
 
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.GetAllModSettings"u8;
+
     /// <inheritdoc cref="IPenumbraApiModSettings.GetAllModSettings"/>
     public new (PenumbraApiEc, Dictionary<string, (bool, int, Dictionary<string, List<string>>, bool, bool)>?) Invoke(Guid collectionId,
         bool ignoreInheritance = false, bool ignoreTemporary = false, int key = 0)
@@ -101,12 +117,41 @@ public sealed class GetAllModSettings(IDalamudPluginInterface pi)
         });
 }
 
+/// <inheritdoc cref="IPenumbraApiModSettings.GetSettingsInAllCollections"/>
+public sealed class GetSettingsInAllCollections(IDalamudPluginInterface pi)
+    : FuncSubscriber<string, string, bool, (int, Dictionary<Guid, (bool, int, Dictionary<string, List<string>>, bool, bool)>)>(pi, Label)
+{
+    /// <summary> The label. </summary>
+    public const string Label = $"Penumbra.{nameof(GetSettingsInAllCollections)}";
+
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.GetSettingsInAllCollections"u8;
+
+    /// <inheritdoc cref="IPenumbraApiModSettings.GetSettingsInAllCollections"/>
+    public PenumbraApiEc Invoke(string modDirectory, out Dictionary<Guid, (bool, int, Dictionary<string, List<string>>, bool, bool)> settings,
+        bool ignoreTemporaryCollections = false, string modName = "")
+    {
+        (var ret, settings) = base.Invoke(modDirectory, modName, ignoreTemporaryCollections);
+        return (PenumbraApiEc)ret;
+    }
+
+    /// <summary> Create a provider. </summary>
+    public static FuncProvider<string, string, bool, (int, Dictionary<Guid, (bool, int, Dictionary<string, List<string>>, bool, bool)>)>
+        Provider(IDalamudPluginInterface pi, IPenumbraApiModSettings api)
+        => new(pi, Label, (a, b, c) => ((int)api.GetSettingsInAllCollections(a, b, out var r, c), r));
+}
+
 /// <inheritdoc cref="IPenumbraApiModSettings.TryInheritMod"/>
 public sealed class TryInheritMod(IDalamudPluginInterface pi)
     : FuncSubscriber<Guid, string, string, bool, int>(pi, Label)
 {
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(TryInheritMod)}.V5";
+
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.TryInheritMod.V5"u8;
 
     /// <inheritdoc cref="IPenumbraApiModSettings.TryInheritMod"/>
     public PenumbraApiEc Invoke(Guid collectionId, string modDirectory, bool inherit, string modName = "")
@@ -124,6 +169,10 @@ public sealed class TrySetMod(IDalamudPluginInterface pi)
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(TrySetMod)}.V5";
 
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.TrySetMod.V5"u8;
+
     /// <inheritdoc cref="IPenumbraApiModSettings.TrySetMod"/>
     public PenumbraApiEc Invoke(Guid collectionId, string modDirectory, bool inherit, string modName = "")
         => (PenumbraApiEc)Invoke(collectionId, modDirectory, modName, inherit);
@@ -139,6 +188,10 @@ public sealed class TrySetModPriority(IDalamudPluginInterface pi)
 {
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(TrySetModPriority)}.V5";
+
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.TrySetModPriority.V5"u8;
 
     /// <inheritdoc cref="IPenumbraApiModSettings.TrySetModPriority"/>
     public PenumbraApiEc Invoke(Guid collectionId, string modDirectory, int priority, string modName = "")
@@ -156,6 +209,10 @@ public sealed class TrySetModSetting(IDalamudPluginInterface pi)
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(TrySetModSetting)}.V5";
 
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.TrySetModSetting.V5"u8;
+
     /// <inheritdoc cref="IPenumbraApiModSettings.TrySetModSetting"/>
     public new PenumbraApiEc Invoke(Guid collectionId, string modDirectory, string optionGroupName, string optionName, string modName = "")
         => (PenumbraApiEc)base.Invoke(collectionId, modDirectory, modName, optionGroupName, optionName);
@@ -171,6 +228,10 @@ public sealed class TrySetModSettings(IDalamudPluginInterface pi)
 {
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(TrySetModSettings)}.V5";
+
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.TrySetModSettings.V5"u8;
 
     /// <inheritdoc cref="IPenumbraApiModSettings.TrySetModSettings"/>
     public PenumbraApiEc Invoke(Guid collectionId, string modDirectory, string optionGroupName,
@@ -189,6 +250,10 @@ public static class ModSettingChanged
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(ModSettingChanged)}.V5";
 
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.ModSettingChanged.V5"u8;
+
     /// <summary> Create a new event subscriber. </summary>
     public static EventSubscriber<ModSettingChange, Guid, string, bool> Subscriber(IDalamudPluginInterface pi,
         params Action<ModSettingChange, Guid, string, bool>[] actions)
@@ -205,6 +270,10 @@ public sealed class CopyModSettings(IDalamudPluginInterface pi)
 {
     /// <summary> The label. </summary>
     public const string Label = $"Penumbra.{nameof(CopyModSettings)}.V5";
+
+    /// <summary> The label as UTF8 string. </summary>
+    public static ReadOnlySpan<byte> LabelU8
+        => "Penumbra.CopyModSettings.V5"u8;
 
     /// <inheritdoc cref="IPenumbraApiModSettings.CopyModSettings"/>
     public new PenumbraApiEc Invoke(Guid? collectionId, string modDirectoryFrom, string modDirectoryTo)
