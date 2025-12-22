@@ -4,10 +4,12 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
+using InteropGenerator.Runtime;
 using Lumina.Excel.Sheets;
 using Microsoft.VisualBasic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Penumbra.Api;
 using Penumbra.Api.Helpers;
 using Penumbra.Api.IpcSubscribers;
 using System;
@@ -105,6 +107,8 @@ namespace Rythmos.Handlers
 
         public static GetPlayerResourceTrees Get_Trees;
 
+        public static ResolvePaths Resolver;
+
         public static string Penumbra_Path = "";
 
         public static string Rythmos_Path = "";
@@ -139,6 +143,7 @@ namespace Rythmos.Handlers
         {
             try
             {
+                
                 Collection_Creator = new CreateTemporaryCollection(I);
                 Collection_Assigner = new AssignTemporaryCollection(I);
                 Redraw = new RedrawObject(I);
@@ -150,6 +155,7 @@ namespace Rythmos.Handlers
                 Collection_Remover = new DeleteTemporaryCollection(I);
                 Get_Resources = new GetPlayerResourcePaths(I);
                 Get_Trees = new GetPlayerResourceTrees(I);
+                Resolver = new ResolvePaths(I);
                 Penumbra_Path = new GetModDirectory(I).Invoke();
             }
             catch (Exception Error)

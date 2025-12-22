@@ -41,16 +41,16 @@ public class MainWindow : Window, IDisposable
 
         if (Directory.Exists(Path)) // This exists to clean early versions of files.
         {
-            if (Directory.GetFiles(Path + "\\Compressed").Any(X => X.Split(" ").Length == 2))
-            {
-                Directory.Delete(Path + "\\Compressed", true);
-                Directory.CreateDirectory(Path + "\\Compressed");
-            }
-            if (Directory.GetDirectories(Path + "\\Mods").Any(X => X.Split(" ").Length == 2))
-            {
-                Directory.Delete(Path + "\\Mods", true);
-                Directory.CreateDirectory(Path + "\\Mods");
-            }
+            if (Directory.Exists(Path + "\\Compressed")) if (Directory.GetFiles(Path + "\\Compressed").Any(X => X.Split(" ").Length == 2))
+                {
+                    Directory.Delete(Path + "\\Compressed", true);
+                    Directory.CreateDirectory(Path + "\\Compressed");
+                }
+            if (Directory.Exists(Path + "\\Mods")) if (Directory.GetDirectories(Path + "\\Mods").Any(X => X.Split(" ").Length == 2))
+                {
+                    Directory.Delete(Path + "\\Mods", true);
+                    Directory.CreateDirectory(Path + "\\Mods");
+                }
         }
     }
 

@@ -43,6 +43,7 @@ namespace Rythmos.Handlers
 
         public static string Download_Progress = "";
 
+
         private static Task Getter;
 
         private static CancellationTokenSource Cancel = new();
@@ -55,7 +56,7 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
-        public static string Version = "0.2.8.1";
+        public static string Version = "0.2.8.3";
 
         public static Task Send(byte[] Data, byte Type)
         {
@@ -268,7 +269,21 @@ namespace Rythmos.Handlers
                                                             }
                                                             Log.Information((Skip ? "Skipped" : "Received") + $" {Character_Name} " + Part);
                                                             if (Part == -1) if (JsonConvert.DeserializeObject<Mod_Configuration>(File.ReadAllText(File_Name)).Mods.Keys.Count == 0) End = true;
-                                                            if (End)
+                                                            var Problem = false;
+                                                            if (Part > -1)
+                                                            {
+                                                                try
+                                                                {
+                                                                    ZipFile.ExtractToDirectory(File_Name, Rythmos_Path + "\\Mods\\" + Character_Name + "\\" + File_Name.Split("\\")[^1].Split(".zip")[0]);
+                                                                }
+                                                                catch (Exception Error)
+                                                                {
+                                                                    Log.Error("Request Unzipping: " + Error.Message);
+                                                                    Part -= 1;
+                                                                    Problem = true;
+                                                                }
+                                                            }
+                                                            if (End && !Problem)
                                                             {
                                                                 var Configuration = Rythmos_Path + $"\\Parts\\{Character_Name}\\Configuration.json";
                                                                 File.Copy(Configuration, Rythmos_Path + $"\\Mods\\{Character_Name}\\Configuration.json");
@@ -300,18 +315,6 @@ namespace Rythmos.Handlers
                                                             }
                                                             else
                                                             {
-                                                                if (Part > -1)
-                                                                {
-                                                                    try
-                                                                    {
-                                                                        ZipFile.ExtractToDirectory(File_Name, Rythmos_Path + "\\Mods\\" + Character_Name + "\\" + File_Name.Split("\\")[^1].Split(".zip")[0]);
-                                                                    }
-                                                                    catch (Exception Error)
-                                                                    {
-                                                                        Log.Error("Request Unzipping: " + Error.Message);
-                                                                        Part -= 1;
-                                                                    }
-                                                                }
                                                                 var Next_Name = JsonConvert.DeserializeObject<Mod_Configuration>(File.ReadAllText(Rythmos_Path + $"\\Parts\\{Character_Name}\\Configuration.json")).Order[Part + 1];
                                                                 var Next = Rythmos_Path + $"\\Parts\\{Character_Name}\\{Next_Name}.zip";
                                                                 Log.Information($"Requesting {Next_Name} for {Character_Name}.");

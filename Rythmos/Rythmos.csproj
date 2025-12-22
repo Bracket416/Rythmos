@@ -6,6 +6,7 @@
     <PackageProjectUrl>https://github.com/Sonzai416/Rythmos</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <IsPackable>false</IsPackable>
+    <Platforms>x64;x86</Platforms>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Glamourer.Api\Glamourer.Api.csproj" />
