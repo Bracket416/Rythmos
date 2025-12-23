@@ -43,7 +43,6 @@ namespace Rythmos.Handlers
 
         public static string Download_Progress = "";
 
-
         private static Task Getter;
 
         private static CancellationTokenSource Cancel = new();
@@ -56,7 +55,7 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
-        public static string Version = "0.2.8.3";
+        public static string Version = "0.2.8.4";
 
         public static Task Send(byte[] Data, byte Type)
         {
@@ -191,7 +190,7 @@ namespace Rythmos.Handlers
                                                         File.WriteAllBytes(Characters.Get_Available(File_Name), Output); // This should be a stream in the future for large file sizes.
                                                         try
                                                         {
-                                                            if (Characters.Unpack(File_Name)) F.RunOnFrameworkThread(() =>
+                                                            if (Characters.Unpack(File_Name)) F.RunOnTick(() =>
                                                                 {
                                                                     if (Characters.ID_Mapping.ContainsKey(File_Name))
                                                                     {

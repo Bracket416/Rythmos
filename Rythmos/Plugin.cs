@@ -72,16 +72,19 @@ public sealed class Plugin : IDalamudPlugin
                     MainWindow.Mini_Packing = "Mini-Packing";
                 }
                 else if (Type == 2) MainWindow.Micro_Packing = "Micro-Packing";
-                await Characters.Pack(Name, M, Type);
-                if (Type == 0)
+                Framework.RunOnTick(async () =>
                 {
-                    MainWindow.Packing = "Pack";
-                }
-                else if (Type == 1)
-                {
-                    MainWindow.Mini_Packing = "Mini-Pack";
-                }
-                else if (Type == 2) MainWindow.Micro_Packing = "Micro-Pack";
+                    await Characters.Pack(Name, M, Type);
+                    if (Type == 0)
+                    {
+                        MainWindow.Packing = "Pack";
+                    }
+                    else if (Type == 1)
+                    {
+                        MainWindow.Mini_Packing = "Mini-Pack";
+                    }
+                    else if (Type == 2) MainWindow.Micro_Packing = "Micro-Pack";
+                });
             }
             catch (Exception Error)
             {

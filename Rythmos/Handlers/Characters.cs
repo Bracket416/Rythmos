@@ -103,7 +103,7 @@ namespace Rythmos.Handlers
 
         private static GetMetaManipulations Get_Meta;
 
-        public static GetPlayerResourcePaths Get_Resources;
+        public static GetGameObjectResourcePaths Get_Resources;
 
         public static GetPlayerResourceTrees Get_Trees;
 
@@ -143,7 +143,7 @@ namespace Rythmos.Handlers
         {
             try
             {
-                
+
                 Collection_Creator = new CreateTemporaryCollection(I);
                 Collection_Assigner = new AssignTemporaryCollection(I);
                 Redraw = new RedrawObject(I);
@@ -153,7 +153,7 @@ namespace Rythmos.Handlers
                 Settings_Getter = new GetAllModSettings(I);
                 Get_Meta = new GetMetaManipulations(I);
                 Collection_Remover = new DeleteTemporaryCollection(I);
-                Get_Resources = new GetPlayerResourcePaths(I);
+                Get_Resources = new GetGameObjectResourcePaths(I);
                 Get_Trees = new GetPlayerResourceTrees(I);
                 Resolver = new ResolvePaths(I);
                 Penumbra_Path = new GetModDirectory(I).Invoke();
@@ -499,7 +499,9 @@ namespace Rythmos.Handlers
 
         public static Task Pack(string Name, Mod_Configuration M, uint Type = 0)
         {
-            var Current_Files = Get_Resources.Invoke()[0].Keys.ToList().Select(X => X.ToLower()).ToList();
+            var Index = ID_Mapping[Name];
+            Log.Information(Index.ToString());
+            var Current_Files = Get_Resources.Invoke(Index)[0].Keys.ToList().Select(X => X.ToLower()).ToList();
             return Task.Run(() =>
             {
                 Log.Information("Packing: " + Rythmos_Path + $"\\Compressed\\{Name}.zip");
@@ -684,6 +686,7 @@ namespace Rythmos.Handlers
         {
             if (Collection_Mapping.ContainsKey(Name) && Mods.ContainsKey(Name))
             {
+                if (!Path.Exists(Rythmos_Path + $"\\Mods\\{Name}\\Rythmos")) Directory.CreateDirectory(Rythmos_Path + $"\\Mods\\{Name}\\Rythmos");
                 Dictionary<string, (Tuple<string, Dictionary<string, string>>, int)> Mod_Data = new();
                 foreach (var Mod in Mods[Name].Mods) Mod_Data[Mod.Key] = (Parse_Mod(Name, Mod.Value), Mod.Value.Item2);
                 var Origins = new Dictionary<string, HashSet<string>>();
@@ -705,9 +708,23 @@ namespace Rythmos.Handlers
                         else if (!File.Exists(Entry.Value)) Remove.Add(Entry.Key);
                     }
                     foreach (var Key in Remove) Mod.Value.Item1.Item2.Remove(Key);
+                    foreach (var Key in Mod.Value.Item1.Item2)
+                    {
+                        //Log.Information(Rythmos_Path);
+                        //Log.Information(Key.Value.Split("\\")[^1]);
+                        if (Key.Value.StartsWith(Rythmos_Path))
+                        {
+                            Mod.Value.Item1.Item2[Key.Key] = Rythmos_Path + $"\\Mods\\{Name}\\Rythmos\\" + Key.Value.Split("\\")[^1];
+                            File.Copy(Key.Value, Mod.Value.Item1.Item2[Key.Key], true);
+                        }
+                    }
                 }
-                foreach (var Mod in Mod_Data) Temporary_Mod_Adder.Invoke(Mod.Key, Collection_Mapping[Name], Mod.Value.Item1.Item2, Modifications.Length == 0 ? Mod.Value.Item1.Item1 : "", Mod.Value.Item2).ToString();
-                if (Modifications.Length > 0) Temporary_Mod_Adder.Invoke(Name + " Manipulations", Collection_Mapping[Name], new Dictionary<string, string> { }, Modifications, 50);
+                if (Modifications.Length > 0) Temporary_Mod_Adder.Invoke(Name + " Manipulations", Collection_Mapping[Name], new Dictionary<string, string> { }, Modifications, 0);
+                foreach (var Mod in Mod_Data)
+                {
+                    foreach (var P in Mod.Value.Item1.Item2) Log.Information(P.ToString());
+                    Temporary_Mod_Adder.Invoke(Mod.Key, Collection_Mapping[Name], Mod.Value.Item1.Item2, Mod.Value.Item1.Item1, Mod.Value.Item2).ToString();
+                }
             }
         }
 
@@ -768,8 +785,12 @@ namespace Rythmos.Handlers
                 foreach (var O in Objects) if (O.ObjectKind is Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player)
                     {
                         var Name = Get_Name(O.ObjectIndex);
+                        if (O.ObjectIndex == Objects.LocalPlayer?.ObjectIndex)
+                        {
+                            ID_Mapping[Name] = O.ObjectIndex;
+                            continue;
+                        }
                         if (!(((BattleChara*)O.Address)->IsFriend) && !Networking.C.Friends.Contains(Name)) continue;
-                        if (O.ObjectIndex == Objects.LocalPlayer?.ObjectIndex) continue;
                         if (Glamour.Ready) if (ID_Mapping.ContainsKey(Name)) if (ID_Mapping[Name] != O.ObjectIndex)
                                 {
                                     Glamour.Unlock(ID_Mapping[Name]);
