@@ -139,14 +139,6 @@ namespace Rythmos.Handlers
 
         public static void Dispose()
         {
-            if (Ready) foreach (ushort Index in Handling) try
-                    {
-                        Revert(Index);
-                    }
-                    catch (Exception Error)
-                    {
-                        Log.Error("Reset: " + Error.Message);
-                    }
             E.Dispose();
         }
     }
