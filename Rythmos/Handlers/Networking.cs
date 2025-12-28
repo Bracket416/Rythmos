@@ -55,7 +55,7 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
-        public static string Version = "0.2.8.6";
+        public static string Version = "0.2.8.7";
 
         public static Task Send(byte[] Data, byte Type)
         {
@@ -169,7 +169,6 @@ namespace Rythmos.Handlers
                                                     var Character = Split_Message[0];
                                                     var Data = string.Join("|", Split_Message.Skip(1));
                                                     Characters.Glamour_Buffer[Character] = Data;
-                                                    //F.RunOnFrameworkThread(() => Characters.Set_Glamour(Character, Data));
                                                 }
                                                 break;
                                             }

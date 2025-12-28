@@ -754,7 +754,7 @@ namespace Rythmos.Handlers
 
         public static void Set_Glamour(string Name, string Data)
         {
-            if (Data != null) if (Data.Length > 2)
+            if (Data != null) if (Data.Length > 2 && Name != Networking.Name)
                 {
                     Glamours[Name] = Data;
                     if (ID_Mapping.ContainsKey(Name)) if (!Glamour.Set(ID_Mapping[Name], Data)) Recustomize.Add(Name);

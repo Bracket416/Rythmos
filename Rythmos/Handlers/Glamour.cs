@@ -23,6 +23,8 @@ namespace Rythmos.Handlers
         public static IPluginLog Log;
         public static IDalamudPluginInterface Interface;
 
+        public static List<ushort> Handling = new List<ushort>();
+
         public static void Setup(IDalamudPluginInterface I)
         {
             Interface = I;
@@ -51,7 +53,7 @@ namespace Rythmos.Handlers
                 try
                 {
                     var Data = Get.Invoke(Index, 416);
-                    if (Data.Item1 == Glamourer.Api.Enums.GlamourerApiEc.Success)
+                    if (Data.Item1 == GlamourerApiEc.Success)
                     {
                         return JsonConvert.SerializeObject(Data.Item2, Formatting.None);
                     }
@@ -84,7 +86,11 @@ namespace Rythmos.Handlers
                 {
                     var A = JsonConvert.DeserializeObject<JObject>(Data);
                     var B = Apply!.Invoke(A, Index, 416);
-                    if (B is GlamourerApiEc.Success) return true;
+                    if (B is GlamourerApiEc.Success)
+                    {
+                        if (!Handling.Contains(Index)) Handling.Add(Index);
+                        return true;
+                    }
                 }
                 catch (Exception Error)
                 {
@@ -102,6 +108,7 @@ namespace Rythmos.Handlers
                 try
                 {
                     Unlock_State.Invoke(Index, 416);
+                    Handling.Remove(Index);
                 }
                 catch (Exception Error)
                 {
@@ -119,6 +126,7 @@ namespace Rythmos.Handlers
                 try
                 {
                     Revert_State.Invoke(Index, 416);
+                    Handling.Remove(Index);
                 }
                 catch (Exception Error)
                 {
@@ -128,8 +136,17 @@ namespace Rythmos.Handlers
             }
             else Setup(Interface);
         }
+
         public static void Dispose()
         {
+            if (Ready) foreach (ushort Index in Handling) try
+                    {
+                        Revert(Index);
+                    }
+                    catch (Exception Error)
+                    {
+                        Log.Error("Reset: " + Error.Message);
+                    }
             E.Dispose();
         }
     }
