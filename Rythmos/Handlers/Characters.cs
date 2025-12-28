@@ -517,122 +517,125 @@ namespace Rythmos.Handlers
                             List<KeyValuePair<string, string>> Materials = [];
                             List<string> VFX_Textures = [];
                             Dictionary<string, List<string>> Textures = new();
-                            foreach (var Penumbra_File in M.Mods.ToList())
+                            if (Networking.C.Experimental)
                             {
-                                var Path = Penumbra_Path + "\\" + Penumbra_File.Value.Item1;
-                                Modification Default = null;
-                                try
+                                foreach (var Penumbra_File in M.Mods.ToList())
                                 {
-                                    Default = JsonConvert.DeserializeObject<Modification>(File.ReadAllText(Path + "\\default_mod.json"));
-                                }
-                                catch (Exception Error)
-                                {
-                                    Log.Error($"Packing {Penumbra_File.Key}: " + Error.Message);
-                                    continue;
-                                }
-                                var Mods = new List<Modification> { Default };
-                                foreach (var F in Directory.GetFiles(Path).ToList().FindAll(X => X.StartsWith($"{Path}\\group_") && X.EndsWith(".json")))
-                                {
-                                    Group Data = null;
+                                    var Path = Penumbra_Path + "\\" + Penumbra_File.Value.Item1;
+                                    Modification Default = null;
                                     try
                                     {
-                                        Data = JsonConvert.DeserializeObject<Group>(File.ReadAllText(F));
+                                        Default = JsonConvert.DeserializeObject<Modification>(File.ReadAllText(Path + "\\default_mod.json"));
                                     }
                                     catch (Exception Error)
                                     {
-                                        Log.Error($"Packing {F} of {Penumbra_File.Key}: " + Error.Message);
+                                        Log.Error($"Packing {Penumbra_File.Key}: " + Error.Message);
                                         continue;
                                     }
-                                    if (Data.Type != "Imc") foreach (var D in Data.Options) if (!Penumbra_File.Value.Item3.ContainsKey(Data.Name))
+                                    var Mods = new List<Modification> { Default };
+                                    foreach (var F in Directory.GetFiles(Path).ToList().FindAll(X => X.StartsWith($"{Path}\\group_") && X.EndsWith(".json")))
+                                    {
+                                        Group Data = null;
+                                        try
+                                        {
+                                            Data = JsonConvert.DeserializeObject<Group>(File.ReadAllText(F));
+                                        }
+                                        catch (Exception Error)
+                                        {
+                                            Log.Error($"Packing {F} of {Penumbra_File.Key}: " + Error.Message);
+                                            continue;
+                                        }
+                                        if (Data.Type != "Imc") foreach (var D in Data.Options) if (!Penumbra_File.Value.Item3.ContainsKey(Data.Name))
+                                                {
+                                                    Log.Error($"{D.Name} of {Penumbra_File.Key} was requested but not gathered as an option.");
+                                                    Mods.Add(D);
+                                                }
+                                                else if (Penumbra_File.Value.Item3[Data.Name].Contains(D.Name)) Mods.Add(D);
+                                    }
+                                    var Output = new Dictionary<string, string>();
+                                    var Setter = new Dictionary<string, int>();
+                                    foreach (var Mod in Mods) foreach (var Swap in Mod.Merge())
+                                        {
+                                            if (!Setter.ContainsKey(Swap.Key)) Setter.Add(Swap.Key, Mod.Priority);
+                                            if (Setter[Swap.Key] >= Mod.Priority)
                                             {
-                                                Log.Error($"{D.Name} of {Penumbra_File.Key} was requested but not gathered as an option.");
-                                                Mods.Add(D);
+                                                if (!Output.ContainsKey(Swap.Key)) Output.Add(Swap.Key, Swap.Value.Item1);
+                                                if (Swap.Value.Item2 && (File.Exists(Path + "\\" + Swap.Value.Item1) || Types.All(X => !Swap.Value.Item1.StartsWith(X)))) Output[Swap.Key] = Path + "\\" + Swap.Value.Item1;
+                                                Setter[Swap.Key] = Mod.Priority;
                                             }
-                                            else if (Penumbra_File.Value.Item3[Data.Name].Contains(D.Name)) Mods.Add(D);
+                                        }
+                                    foreach (var O in Output) if (O.Value.EndsWith(".mtrl"))
+                                        {
+                                            Materials.Add(O);
+                                            Current_Files.Add(O.Value.ToLower());
+                                        }
+                                        else if (O.Value.EndsWith(".tex") || O.Value.EndsWith(".atex"))
+                                        {
+                                            if (!Textures.ContainsKey(O.Key.ToLower())) Textures.Add(O.Key.ToLower(), []);
+                                            Textures[O.Key.ToLower()].Add(O.Value.ToLower());
+                                        }
+                                        else if (O.Value.EndsWith(".mdl") && (Type == 0 ? true : Current_Files.Contains(O.Value.ToLower())))
+                                        {
+                                            Log.Information($"Reading model {O.Value}.");
+                                            if (File.Exists(O.Value))
+                                            {
+                                                var Parsed_Materials = string.Join("/", File.ReadAllText(O.Value).Split("/").Skip(1)).Split(".mtrl").SkipLast(1).Select(X => (X + ".mtrl").Split("/")[^1]);
+                                                foreach (var Material in Parsed_Materials) Required_Materials.Add(Material.ToLower());
+                                            }
+                                            else Log.Error(O.Value + " does not exist.");
+                                        }
+                                        else if (O.Value.EndsWith(".avfx") && Type < 2)
+                                        {
+                                            Log.Information($"Reading VFX {O.Value}.");
+                                            if (File.Exists(O.Value))
+                                            {
+                                                var Split_Textures = string.Join("xeT", File.ReadAllText(O.Value).Split("xeT").Skip(1)).Split(".atex").SkipLast(1).Select(X => X + ".atex");
+                                                List<string> Parsed_Textures = [];
+                                                foreach (var Texture in Split_Textures)
+                                                {
+                                                    for (var I = Texture.Length - 1; I >= 0; I--) if (((byte)Texture[I]) == 0)
+                                                        {
+                                                            var Texture_Name = Texture.Substring(I + 1).ToLower();
+                                                            Log.Information("Parsed: " + Texture_Name);
+                                                            if (!VFX_Textures.Contains(Texture_Name)) VFX_Textures.Add(Texture_Name);
+                                                            break;
+                                                        }
+                                                }
+                                                foreach (var Parsed_Texture in Parsed_Textures) Current_Files.Add(Parsed_Texture.ToLower());
+                                            }
+                                            else Log.Error(O.Value + " does not exist.");
+                                        }
                                 }
-                                var Output = new Dictionary<string, string>();
-                                var Setter = new Dictionary<string, int>();
-                                foreach (var Mod in Mods) foreach (var Swap in Mod.Merge())
+                                foreach (var Texture_Name in VFX_Textures) if (Textures.ContainsKey(Texture_Name))
                                     {
-                                        if (!Setter.ContainsKey(Swap.Key)) Setter.Add(Swap.Key, Mod.Priority);
-                                        if (Setter[Swap.Key] >= Mod.Priority)
-                                        {
-                                            if (!Output.ContainsKey(Swap.Key)) Output.Add(Swap.Key, Swap.Value.Item1);
-                                            if (Swap.Value.Item2 && (File.Exists(Path + "\\" + Swap.Value.Item1) || Types.All(X => !Swap.Value.Item1.StartsWith(X)))) Output[Swap.Key] = Path + "\\" + Swap.Value.Item1;
-                                            Setter[Swap.Key] = Mod.Priority;
-                                        }
+                                        Log.Information("Found " + Texture_Name + $", which should be replaced by the following:\n- " + string.Join("\n- ", Textures[Texture_Name]));
+                                        foreach (var Required_File in Textures[Texture_Name]) Current_Files.Add(Required_File);
                                     }
-                                foreach (var O in Output) if (O.Value.EndsWith(".mtrl"))
+                                foreach (var O in Materials) if (Required_Materials.Any(X => O.Key.ToLower().EndsWith(X)))
                                     {
-                                        Materials.Add(O);
-                                        Current_Files.Add(O.Value.ToLower());
-                                    }
-                                    else if (O.Value.EndsWith(".tex") || O.Value.EndsWith(".atex"))
-                                    {
-                                        if (!Textures.ContainsKey(O.Key.ToLower())) Textures.Add(O.Key.ToLower(), []);
-                                        Textures[O.Key.ToLower()].Add(O.Value.ToLower());
-                                    }
-                                    else if (O.Value.EndsWith(".mdl") && (Type == 0 ? true : Current_Files.Contains(O.Value.ToLower())))
-                                    {
-                                        Log.Information($"Reading model {O.Value}.");
+                                        Log.Information($"Reading material {O.Value}.");
                                         if (File.Exists(O.Value))
                                         {
-                                            var Parsed_Materials = string.Join("/", File.ReadAllText(O.Value).Split("/").Skip(1)).Split(".mtrl").SkipLast(1).Select(X => (X + ".mtrl").Split("/")[^1]);
-                                            foreach (var Material in Parsed_Materials) Required_Materials.Add(Material.ToLower());
-                                        }
-                                        else Log.Error(O.Value + " does not exist.");
-                                    }
-                                    else if (O.Value.EndsWith(".avfx") && Type < 2)
-                                    {
-                                        Log.Information($"Reading VFX {O.Value}.");
-                                        if (File.Exists(O.Value))
-                                        {
-                                            var Split_Textures = string.Join("xeT", File.ReadAllText(O.Value).Split("xeT").Skip(1)).Split(".atex").SkipLast(1).Select(X => X + ".atex");
-                                            List<string> Parsed_Textures = [];
-                                            foreach (var Texture in Split_Textures)
+                                            var Required_Textures = File.ReadAllText(O.Value, Encoding.UTF8).Split(".tex").SkipLast(1).Select(X => X + ".tex");
+                                            foreach (var Texture in Required_Textures)
                                             {
                                                 for (var I = Texture.Length - 1; I >= 0; I--) if (((byte)Texture[I]) == 0)
                                                     {
                                                         var Texture_Name = Texture.Substring(I + 1).ToLower();
                                                         Log.Information("Parsed: " + Texture_Name);
-                                                        if (!VFX_Textures.Contains(Texture_Name)) VFX_Textures.Add(Texture_Name);
+                                                        if (Textures.ContainsKey(Texture_Name))
+                                                        {
+                                                            Log.Information("Found " + Texture_Name + $", which should be replaced by the following:\n- " + string.Join("\n- ", Textures[Texture_Name]));
+                                                            foreach (var Required_File in Textures[Texture_Name]) Current_Files.Add(Required_File);
+                                                        }
                                                         break;
                                                     }
                                             }
-                                            foreach (var Parsed_Texture in Parsed_Textures) Current_Files.Add(Parsed_Texture.ToLower());
                                         }
                                         else Log.Error(O.Value + " does not exist.");
                                     }
+                                foreach (var F in Current_Files) Log.Information(F);
                             }
-                            foreach (var Texture_Name in VFX_Textures) if (Textures.ContainsKey(Texture_Name))
-                                {
-                                    Log.Information("Found " + Texture_Name + $", which should be replaced by the following:\n- " + string.Join("\n- ", Textures[Texture_Name]));
-                                    foreach (var Required_File in Textures[Texture_Name]) Current_Files.Add(Required_File);
-                                }
-                            foreach (var O in Materials) if (Required_Materials.Any(X => O.Key.ToLower().EndsWith(X)))
-                                {
-                                    Log.Information($"Reading material {O.Value}.");
-                                    if (File.Exists(O.Value))
-                                    {
-                                        var Required_Textures = File.ReadAllText(O.Value, Encoding.UTF8).Split(".tex").SkipLast(1).Select(X => X + ".tex");
-                                        foreach (var Texture in Required_Textures)
-                                        {
-                                            for (var I = Texture.Length - 1; I >= 0; I--) if (((byte)Texture[I]) == 0)
-                                                {
-                                                    var Texture_Name = Texture.Substring(I + 1).ToLower();
-                                                    Log.Information("Parsed: " + Texture_Name);
-                                                    if (Textures.ContainsKey(Texture_Name))
-                                                    {
-                                                        Log.Information("Found " + Texture_Name + $", which should be replaced by the following:\n- " + string.Join("\n- ", Textures[Texture_Name]));
-                                                        foreach (var Required_File in Textures[Texture_Name]) Current_Files.Add(Required_File);
-                                                    }
-                                                    break;
-                                                }
-                                        }
-                                    }
-                                    else Log.Error(O.Value + " does not exist.");
-                                }
-                            foreach (var F in Current_Files) Log.Information(F);
                             foreach (var File in Directory.EnumerateFiles(Penumbra_Path, "*", SearchOption.AllDirectories)) if (Paths.Any(X => File.StartsWith(X + "\\")) && (Type == 0 ? true : Current_Files.Contains(File.ToString().ToLower()) || File.EndsWith(".json") || (Type == 2 ? false : File.EndsWith(".pap") || File.EndsWith(".tmb") || File.EndsWith("scd") || File.EndsWith("sklb") || File.EndsWith("kbd") || File.EndsWith("avfx")))) A.CreateEntryFromFile(File, File.Substring(Penumbra_Path.Length + 1));
                             using (StreamWriter W = new StreamWriter(A.CreateEntry("Configuration.json").Open())) W.Write(JsonConvert.SerializeObject(M, Formatting.Indented));
                         }

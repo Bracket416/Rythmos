@@ -112,7 +112,6 @@ public class MainWindow : Window, IDisposable
                             if (P.Configuration.Sync_Glamourer) Characters.Update_Glamour(ClientState.LocalPlayer.Address);
                             P.Configuration.Save();
                         }
-
                     }
                 }
             }
