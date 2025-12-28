@@ -98,6 +98,12 @@ public sealed class Plugin : IDalamudPlugin
     {
         I.Inject(this);
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        if (Configuration.Path.Length > 0)
+        {
+            if (!Directory.Exists(Configuration.Path + "\\Compressed")) Directory.CreateDirectory(Configuration.Path + "\\Compressed");
+            if (!Directory.Exists(Configuration.Path + "\\Parts")) Directory.CreateDirectory(Configuration.Path + "\\Parts");
+            if (!Directory.Exists(Configuration.Path + "\\Mods")) Directory.CreateDirectory(Configuration.Path + "\\Mods");
+        }
         Networking.F = Framework;
         Networking.C = Configuration;
         Customize.Log = Log;
@@ -134,18 +140,8 @@ public sealed class Plugin : IDalamudPlugin
         });
 
         PluginInterface.UiBuilder.Draw += DrawUI;
-
-        // This adds a button to the plugin installer entry of this plugin which allows
-        // toggling the display status of the configuration ui
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
-
-        // Adds another button doing the same but for the main ui of the plugin
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
-
-        // Add a simple message to the log with level set to information
-        // Use /xllog to open the log window in-game
-        // Example Output: 00:57:54.959 | INF | [Rythmos] ===A cool log message from Sample Plugin===
-        //Log.Information($"===A cool log message from {PluginInterface.Manifest.Name}===");
     }
 
     public void Dispose()
