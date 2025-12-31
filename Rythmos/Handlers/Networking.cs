@@ -55,7 +55,7 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
-        public static string Version = "0.2.8.9";
+        public static string Version = "0.2.9.0";
 
         public static Task Send(byte[] Data, byte Type)
         {
@@ -288,7 +288,7 @@ namespace Rythmos.Handlers
                                                                 Characters.Locked[Character_Name] = false;
                                                                 try
                                                                 {
-                                                                    F.RunOnFrameworkThread(() =>
+                                                                    F.RunOnTick(() =>
                                                                     {
                                                                         if (Characters.ID_Mapping.ContainsKey(Character_Name))
                                                                         {
@@ -405,7 +405,7 @@ namespace Rythmos.Handlers
                     if (Name.Length > 0)
                     {
                         Networking.Send(UTF8.GetBytes(Name + " " + ID + " " + Version), 0);
-                        F.RunOnFrameworkThread(() => Characters.Update_Glamour(Characters.Client.LocalPlayer.Address));
+                        F.RunOnTick(() => Characters.Update_Glamour(Characters.Objects.LocalPlayer.Address));
                     }
                     Getter = Get();
                     Reconnect = false;
@@ -426,9 +426,9 @@ namespace Rythmos.Handlers
                 {
                     if (!Customize.Ready) Customize.Setup(Customize.Interface);
                     if (!Glamour.Ready) Glamour.Setup(Glamour.Interface);
-                    if (Characters.Client.LocalPlayer is not null)
+                    if (Characters.Objects.LocalPlayer is not null)
                     {
-                        var Current_Name = Characters.Get_Name(Characters.Client.LocalPlayer.ObjectIndex);
+                        var Current_Name = Characters.Get_Name(Characters.Objects.LocalPlayer.ObjectIndex);
                         if (Name != Current_Name)
                         {
                             Reconnect = true;

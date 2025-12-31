@@ -41,6 +41,8 @@ public sealed class Plugin : IDalamudPlugin
         {
             try
             {
+                Networking.Progress = "Uploading";
+                Log.Information(Characters.Rythmos_Path);
                 if (File.Exists(Characters.Rythmos_Path + $"\\Compressed\\{Name}.zip"))
                 {
                     Networking.Progress = "Uploading";
@@ -56,10 +58,11 @@ public sealed class Plugin : IDalamudPlugin
         });
     }
 
-    internal Task Packing(string Name, Characters.Mod_Configuration M, uint Type = 0)
+    internal Task Packing(string Name, Characters.Mod_Configuration M, uint Type = 0, bool Upload = false)
     {
         return Task.Run(async () =>
         {
+            if (MainWindow.General_Packing) return;
             MainWindow.General_Packing = true;
             try
             {
@@ -84,13 +87,15 @@ public sealed class Plugin : IDalamudPlugin
                         MainWindow.Mini_Packing = "Mini-Pack";
                     }
                     else if (Type == 2) MainWindow.Micro_Packing = "Micro-Pack";
+                    if (Upload) await Uploading(Name);
+                    MainWindow.General_Packing = false;
                 });
             }
             catch (Exception Error)
             {
                 Log.Error(Error.Message);
+                MainWindow.General_Packing = false;
             }
-            MainWindow.General_Packing = false;
         });
     }
 
@@ -119,6 +124,7 @@ public sealed class Plugin : IDalamudPlugin
         Characters.Client = ClientState;
         Characters.Objects = Objects;
         Characters.Log = Log;
+        Characters.P = this;
         Characters.Party = Party;
         Characters.Rythmos_Path = Configuration.Path;
         Characters.Setup(I, Chat);

@@ -98,18 +98,22 @@ public class MainWindow : Window, IDisposable
                         Add = false;
                         ImGui.Spacing();
                         ImGui.Checkbox($"{Networking.Progress}##Rythmos Button", ref Add);
-                        if (Add && !General_Packing && Networking.Progress == "Upload Pack")
-                        {
-                            Networking.Progress = "Uploading";
-                            P.Uploading(Networking.Name);
-                        }
+                        if (Add && !General_Packing && Networking.Progress == "Upload Pack") P.Uploading(Networking.Name);
                         Add = false;
                         var Previous = P.Configuration.Sync_Glamourer;
                         ImGui.Spacing();
                         ImGui.Checkbox($"Sync Glamourer##Rythmos Syncing", ref P.Configuration.Sync_Glamourer);
                         if (Previous != P.Configuration.Sync_Glamourer)
                         {
-                            if (P.Configuration.Sync_Glamourer) Characters.Update_Glamour(ClientState.LocalPlayer.Address);
+                            if (P.Configuration.Sync_Glamourer) Characters.Update_Glamour(Characters.Objects.LocalPlayer.Address);
+                            P.Configuration.Save();
+                        }
+                        Previous = P.Configuration.Sync_Penumbra;
+                        ImGui.Spacing();
+                        ImGui.Checkbox($"Sync Penumbra##Rythmos Syncing", ref P.Configuration.Sync_Penumbra);
+                        if (Previous != P.Configuration.Sync_Penumbra)
+                        {
+                            if (P.Configuration.Sync_Penumbra) Characters.Redraw_Character(Networking.Name);
                             P.Configuration.Save();
                         }
                     }

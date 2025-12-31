@@ -15,6 +15,8 @@ public class Configuration : IPluginConfiguration
 
     public bool Experimental = false;
 
+    public bool Sync_Penumbra = true;
+
     public List<string> Friends = new List<string>();
 
     public string Path = "";

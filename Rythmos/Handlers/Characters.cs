@@ -10,8 +10,10 @@ using Microsoft.VisualBasic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Penumbra.Api;
+using Penumbra.Api.Api;
 using Penumbra.Api.Helpers;
 using Penumbra.Api.IpcSubscribers;
+using Rythmos.Windows;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -32,6 +34,8 @@ namespace Rythmos.Handlers
         public static IObjectTable Objects;
 
         public static IClientState Client;
+
+        public static Plugin P;
 
         private static Dictionary<string, Guid> Collection_Mapping = new();
 
@@ -139,11 +143,12 @@ namespace Rythmos.Handlers
 
         public static Dictionary<string, bool> Locked = new();
 
+        public static EventSubscriber<nint, int> Redraw_Handler;
+
         public static void Setup(IDalamudPluginInterface I, IChatGui Chat)
         {
             try
             {
-
                 Collection_Creator = new CreateTemporaryCollection(I);
                 Collection_Assigner = new AssignTemporaryCollection(I);
                 Redraw = new RedrawObject(I);
@@ -157,6 +162,10 @@ namespace Rythmos.Handlers
                 Get_Trees = new GetPlayerResourceTrees(I);
                 Resolver = new ResolvePaths(I);
                 Penumbra_Path = new GetModDirectory(I).Invoke();
+                Redraw_Handler = GameObjectRedrawn.Subscriber(I, (nint A, int Object_Index) =>
+                {
+                    if (Networking.C.Sync_Penumbra && Object_Index == 0) Task.Delay(500).ContinueWith(_ => Networking.F.RunOnTick(() => P.Packing(Networking.Name, Gather_Mods(Networking.Name), 2, true)));
+                });
             }
             catch (Exception Error)
             {
@@ -169,7 +178,6 @@ namespace Rythmos.Handlers
 
         public static string Get_Newest(string Name)
         {
-            //Log.Info($"Getting {Name}!");
             var Compressed_Path = Rythmos_Path + "\\Compressed";
             var Candidates = Directory.GetFiles(Compressed_Path).ToList().FindAll(X => X.Split(Compressed_Path)[^1].StartsWith("\\" + Name));
             if (Candidates.Count == 0) return null;
@@ -565,6 +573,7 @@ namespace Rythmos.Handlers
                 File.WriteAllBytes(D + "\\Configuration.json", Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new Mod_Configuration(Customize_Data, Glamourer_Data, Meta, Settings, null), Formatting.None)));
                 if (File.Exists(D + ".zip")) File.Delete(D + ".zip");
                 ZipFile.CreateFromDirectory(D, D + ".zip");
+                Log.Information("A compressed pack has been created!");
             }
             catch (Exception Error)
             {
@@ -967,6 +976,7 @@ namespace Rythmos.Handlers
 
         public static void Dispose()
         {
+            if (Redraw_Handler != null) Redraw_Handler.Dispose();
             foreach (var Name in Collection_Mapping.Keys.ToList()) Remove_Collection(Name);
         }
     }
