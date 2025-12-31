@@ -238,6 +238,7 @@ namespace Rythmos.Handlers
                 {
                     File_Time_Mapping[Name] = new DateTimeOffset(File.GetLastWriteTimeUtc(Rythmos_Path + $"\\Mods\\{Name}\\Configuration.json")).ToUnixTimeMilliseconds();
                     Log.Information($"Creating the collection of {Name}!");
+                    if (Collection_Mapping.ContainsKey(Name)) Collection_Remover.Invoke(Collection_Mapping[Name]);
                     Collection_Creator.Invoke(Name, Name, out var Collection_ID);
                     Collection_Mapping.Add(Name, Collection_ID);
                     Load(Name);
@@ -275,7 +276,7 @@ namespace Rythmos.Handlers
             return false;
         }
 
-        private static void Remove_Collection(string Name)
+        public static void Remove_Collection(string Name)
         {
             if (Collection_Mapping.ContainsKey(Name))
             {
@@ -962,6 +963,11 @@ namespace Rythmos.Handlers
             {
                 Log.Error("Character Update: " + Error.Message);
             }
+        }
+
+        public static void Dispose()
+        {
+            foreach (var Name in Collection_Mapping.Keys.ToList()) Remove_Collection(Name);
         }
     }
 }

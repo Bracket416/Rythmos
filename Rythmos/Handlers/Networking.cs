@@ -55,7 +55,7 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
-        public static string Version = "0.2.8.8";
+        public static string Version = "0.2.8.9";
 
         public static Task Send(byte[] Data, byte Type)
         {
@@ -194,10 +194,8 @@ namespace Rythmos.Handlers
                                                                     if (Characters.ID_Mapping.ContainsKey(File_Name))
                                                                     {
                                                                         Characters.Glamours.Remove(File_Name);
+                                                                        Characters.Remove_Collection(Character_Name);
                                                                         Characters.Set_Collection(Characters.ID_Mapping[File_Name]);
-                                                                        Characters.Load(File_Name);
-                                                                        Characters.Prepare(File_Name);
-                                                                        Characters.Enable(File_Name);
                                                                     }
                                                                     Characters.File_Time_Mapping[File_Name] = Characters.Server_Time_Mapping[File_Name];
                                                                 });
@@ -295,10 +293,8 @@ namespace Rythmos.Handlers
                                                                         if (Characters.ID_Mapping.ContainsKey(Character_Name))
                                                                         {
                                                                             Characters.Glamours.Remove(Character_Name);
+                                                                            Characters.Remove_Collection(Character_Name);
                                                                             Characters.Set_Collection(Characters.ID_Mapping[Character_Name]);
-                                                                            Characters.Load(Character_Name);
-                                                                            Characters.Prepare(Character_Name);
-                                                                            Characters.Enable(Character_Name);
                                                                         }
                                                                         Characters.File_Time_Mapping[Character_Name] = Characters.Server_Time_Mapping[Character_Name];
                                                                     });

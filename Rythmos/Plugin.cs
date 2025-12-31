@@ -155,6 +155,7 @@ public sealed class Plugin : IDalamudPlugin
         Networking.Dispose();
         Glamour.Dispose();
         Queue.Dispose();
+        Characters.Dispose();
     }
 
     private void OnCommand(string command, string args)
