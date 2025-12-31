@@ -164,7 +164,7 @@ namespace Rythmos.Handlers
                 Penumbra_Path = new GetModDirectory(I).Invoke();
                 Redraw_Handler = GameObjectRedrawn.Subscriber(I, (nint A, int Object_Index) =>
                 {
-                    if (Networking.C.Sync_Penumbra && Object_Index == 0) Task.Delay(500).ContinueWith(_ => Networking.F.RunOnTick(() => P.Packing(Networking.Name, Gather_Mods(Networking.Name), 2, true)));
+                    if (Networking.C.Sync_Penumbra && Object_Index == 0) Task.Delay(1000).ContinueWith(_ => Networking.F.RunOnTick(() => P.Packing(Networking.Name, Gather_Mods(Networking.Name), 2, true)));
                 });
             }
             catch (Exception Error)
