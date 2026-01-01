@@ -62,7 +62,7 @@ public class MainWindow : Window, IDisposable
         {
             if (child.Success)
             {
-                if (ClientState.LocalPlayer != null)
+                if (Characters.Objects.LocalPlayer != null)
                 {
                     var Add = false;
 
@@ -86,15 +86,15 @@ public class MainWindow : Window, IDisposable
                         ImGui.Spacing();
                         Add = false;
                         ImGui.Checkbox($"{Packing}##Rythmos Button", ref Add);
-                        if (Add && !General_Packing) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name));
+                        if (Add && !General_Packing) P.Packing(Networking.Name);
                         Add = false;
                         ImGui.SameLine();
                         ImGui.Checkbox($"{Mini_Packing}##Rythmos Button", ref Add);
-                        if (Add && !General_Packing) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name), 1);
+                        if (Add && !General_Packing) P.Packing(Networking.Name, 1);
                         Add = false;
                         ImGui.SameLine();
                         ImGui.Checkbox($"{Micro_Packing}##Rythmos Button", ref Add);
-                        if (Add && !General_Packing) P.Packing(Networking.Name, Characters.Gather_Mods(Networking.Name), 2);
+                        if (Add && !General_Packing) P.Packing(Networking.Name, 2);
                         Add = false;
                         ImGui.Spacing();
                         ImGui.Checkbox($"{Networking.Progress}##Rythmos Button", ref Add);

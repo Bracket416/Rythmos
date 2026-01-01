@@ -138,6 +138,38 @@ public sealed class ApplyStateName(IDalamudPluginInterface pi)
         => new(pi, Label, (a, b, c, d) => (int)api.ApplyStateName(a, b, c, (ApplyFlag)d));
 }
 
+/// <inheritdoc cref="IGlamourerApiState.ReapplyState"/>
+public sealed class ReapplyState(IDalamudPluginInterface pi)
+    : FuncSubscriber<int, uint, ulong, int>(pi, Label)
+{
+    /// <summary> The label. </summary>
+    public const string Label = $"Glamourer.{nameof(ReapplyState)}";
+
+    /// <inheritdoc cref="IGlamourerApiState.ReapplyState"/>
+    public GlamourerApiEc Invoke(int objectIndex, uint key = 0, ApplyFlag flags = ApplyFlagEx.StateDefault)
+        => (GlamourerApiEc)Invoke(objectIndex, key, (ulong)flags);
+
+    /// <summary> Create a provider. </summary>
+    public static FuncProvider<int, uint, ulong, int> Provider(IDalamudPluginInterface pi, IGlamourerApiState api)
+        => new(pi, Label, (a, b, c) => (int)api.ReapplyState(a, b, (ApplyFlag)c));
+}
+
+/// <inheritdoc cref="IGlamourerApiState.ReapplyStateName"/>
+public sealed class ReapplyStateName(IDalamudPluginInterface pi)
+    : FuncSubscriber<string, uint, ulong, int>(pi, Label)
+{
+    /// <summary> The label. </summary>
+    public const string Label = $"Glamourer.{nameof(ReapplyStateName)}";
+
+    /// <inheritdoc cref="IGlamourerApiState.ReapplyStateName"/>
+    public GlamourerApiEc Invoke(string objectName, uint key = 0, ApplyFlag flags = ApplyFlagEx.StateDefault)
+        => (GlamourerApiEc)Invoke(objectName, key, (ulong)flags);
+
+    /// <summary> Create a provider. </summary>
+    public static FuncProvider<string, uint, ulong, int> Provider(IDalamudPluginInterface pi, IGlamourerApiState api)
+        => new(pi, Label, (a, b, c) => (int)api.ReapplyStateName(a, b, (ApplyFlag)c));
+}
+
 /// <inheritdoc cref="IGlamourerApiState.RevertState"/>
 public sealed class RevertState(IDalamudPluginInterface pi)
     : FuncSubscriber<int, uint, ulong, int>(pi, Label)
@@ -184,6 +216,24 @@ public sealed class UnlockState(IDalamudPluginInterface pi)
     /// <summary> Create a provider. </summary>
     public static FuncProvider<int, uint, int> Provider(IDalamudPluginInterface pi, IGlamourerApiState api)
         => new(pi, Label, (a, b) => (int)api.UnlockState(a, b));
+}
+/// <inheritdoc cref="IGlamourerApiState.CanUnlock"/>
+public sealed class CanUnlock(IDalamudPluginInterface pi)
+    : FuncSubscriber<int, uint, (int, bool, bool)>(pi, Label)
+{
+    /// <summary> The label. </summary>
+    public const string Label = $"Glamourer.{nameof(CanUnlock)}";
+
+    /// <inheritdoc cref="IGlamourerApiState.CanUnlock"/>
+    public GlamourerApiEc Invoke(int objectIndex, uint key, out bool isLocked, out bool canUnlock)
+    {
+        (var ec, isLocked, canUnlock) = base.Invoke(objectIndex, key);
+        return (GlamourerApiEc)ec; 
+    }
+
+    /// <summary> Create a provider. </summary>
+    public static FuncProvider<int, uint, (int, bool, bool)> Provider(IDalamudPluginInterface pi, IGlamourerApiState api)
+        => new(pi, Label, (a, b) => ((int)api.CanUnlock(a, b, out var c, out var d), c, d));
 }
 
 /// <inheritdoc cref="IGlamourerApiState.UnlockStateName"/>
@@ -266,6 +316,21 @@ public sealed class RevertToAutomationName(IDalamudPluginInterface pi)
         => new(pi, Label, (a, b, c) => (int)api.RevertToAutomationName(a, b, (ApplyFlag)c));
 }
 
+/// <inheritdoc cref="IGlamourerApiState.AutoReloadGearChanged" />
+public static class AutoReloadGearChanged
+{
+    /// <summary> The label. </summary>
+    public const string Label = $"Glamourer.{nameof(AutoReloadGearChanged)}";
+
+    /// <summary> Create a new event subscriber. </summary>
+    public static EventSubscriber<bool> Subscriber(IDalamudPluginInterface pi, params Action<bool>[] actions)
+        => new(pi, Label, actions);
+
+    /// <summary> Create a provider. </summary>
+    public static EventProvider<bool> Provider(IDalamudPluginInterface pi, IGlamourerApiState api)
+        => new(pi, Label, (t => api.AutoReloadGearChanged += t, t => api.AutoReloadGearChanged -= t));
+}
+
 /// <inheritdoc cref="IGlamourerApiState.StateChanged" />
 public static class StateChanged
 {
@@ -325,3 +390,5 @@ public static class GPoseChanged
     public static EventProvider<bool> Provider(IDalamudPluginInterface pi, IGlamourerApiState api)
         => new(pi, Label, (t => api.GPoseChanged += t, t => api.GPoseChanged -= t));
 }
+
+

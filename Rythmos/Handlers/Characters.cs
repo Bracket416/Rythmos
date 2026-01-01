@@ -2,6 +2,7 @@ using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using InteropGenerator.Runtime;
@@ -14,6 +15,7 @@ using Penumbra.Api.Api;
 using Penumbra.Api.Helpers;
 using Penumbra.Api.IpcSubscribers;
 using Rythmos.Windows;
+using SixLabors.ImageSharp.Processing;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -29,7 +31,7 @@ using System.Text.Unicode;
 using System.Threading.Tasks;
 namespace Rythmos.Handlers
 {
-    unsafe internal class Characters
+    internal class Characters
     {
         public static IObjectTable Objects;
 
@@ -80,6 +82,8 @@ namespace Rythmos.Handlers
                 this.Order = Order ?? this.Mods.Keys.ToList();
             }
         }
+
+        private static int Threshold = 5000000;
 
         private static Dictionary<string, Mod_Configuration> Mods = new();
 
@@ -145,6 +149,8 @@ namespace Rythmos.Handlers
 
         public static EventSubscriber<nint, int> Redraw_Handler;
 
+        public static ConvertTextureFile Converter;
+
         public static void Setup(IDalamudPluginInterface I, IChatGui Chat)
         {
             try
@@ -162,9 +168,10 @@ namespace Rythmos.Handlers
                 Get_Trees = new GetPlayerResourceTrees(I);
                 Resolver = new ResolvePaths(I);
                 Penumbra_Path = new GetModDirectory(I).Invoke();
+                Converter = new ConvertTextureFile(I);
                 Redraw_Handler = GameObjectRedrawn.Subscriber(I, (nint A, int Object_Index) =>
                 {
-                    if (Networking.C.Sync_Penumbra && Object_Index == 0) Task.Delay(1000).ContinueWith(_ => Networking.F.RunOnTick(() => P.Packing(Networking.Name, Gather_Mods(Networking.Name), 2, true)));
+                    if (Networking.C.Sync_Penumbra && Object_Index == 0) Task.Delay(1000).ContinueWith(_ => Networking.F.RunOnTick(() => P.Packing(Networking.Name, 2, true)));
                 });
             }
             catch (Exception Error)
@@ -444,9 +451,6 @@ namespace Rythmos.Handlers
                     Found.Add(O);
                     Final_Manipulations.Add(JsonConvert.DeserializeObject(O));
                 }
-                //Log.Information(string.Join("\n", Final_Manipulations));
-                //foreach (var M in Final_Manipulations) Log.Information(M.ToString());
-                //foreach (var Item in Output) Log.Information(Item.Key + " " + Item.Value);
                 return Tuple.Create(Make(Final_Manipulations, 0), Output);
             }
             catch (Exception Error)
@@ -456,7 +460,7 @@ namespace Rythmos.Handlers
             }
         }
 
-        public static string Make(Object Data, byte Version)
+        unsafe public static string Make(Object Data, byte Version)
         {
             try
             {
@@ -499,58 +503,33 @@ namespace Rythmos.Handlers
             return new Mod_Configuration("", "", "", Settings, null);
         }
 
-        public static void Compile_Mods(string Name, Dictionary<string, HashSet<string>> Resources, string Customize_Data, string Glamourer_Data, string Meta, Dictionary<string, HashSet<string>>? VFX_Resources = null)
+        public static Task Compile_Mods(string Name, Dictionary<string, HashSet<string>> Resources, string Customize_Data, string Glamourer_Data, string Meta, Dictionary<string, HashSet<string>>? VFX_Resources = null, bool Compress = false)
         {
-            try
+            return Task.Run(async () =>
             {
-                var Settings = new Dictionary<string, Mod_Entry>();
-                Settings["Mods"] = new Mod_Entry("Mods", 0, new Dictionary<string, List<string>>());
-                var Mod = new Modification();
-                Mod.Files = new();
-                Mod.FileSwaps = new();
-                Mod.Manipulations = new();
-                Mod.Priority = 0;
-                Mod.Description = "";
-                Mod.Name = "";
-                var D = Rythmos_Path + "\\Compressed\\" + Name;
-                if (Directory.Exists(D)) Directory.Delete(D, true);
-                Directory.CreateDirectory(D);
-                Directory.CreateDirectory(D + "\\Mods");
-                var Counter = new Dictionary<string, int>();
-                var Maximum = 0;
-                foreach (var Entry in Resources)
+                try
                 {
-                    var Increased = false;
-                    foreach (var File_Entry in Entry.Value.ToList())
-                        if (Entry.Key != File_Entry) if (Entry.Key.Contains("\\"))
-                            {
-                                var New = Entry.Key.Split("\\")[^1];
-                                if (!Counter.ContainsKey(New)) Counter.Add(New, 0);
-                                if (!Increased)
-                                {
-                                    Counter[New]++;
-                                    Increased = true;
-                                }
-                                if (Counter[New] > Maximum)
-                                {
-                                    Maximum = Counter[New];
-                                    Directory.CreateDirectory(D + $"\\Mods\\{Maximum}");
-                                }
-                                File.Copy(Entry.Key, D + $"\\Mods\\{Counter[New]}\\" + New, true);
-                                Mod.Files.Add(File_Entry, $"{Counter[New]}\\" + New);
-                            }
-                            else Mod.FileSwaps.Add(File_Entry, Entry.Key);
-                }
-                if (VFX_Resources != null)
-                {
-                    Counter = new();
-                    Maximum = 0;
-                    foreach (var Entry in VFX_Resources)
+                    var Settings = new Dictionary<string, Mod_Entry>();
+                    Settings["Mods"] = new Mod_Entry("Mods", 0, new Dictionary<string, List<string>>());
+                    var Mod = new Modification();
+                    Mod.Files = new();
+                    Mod.FileSwaps = new();
+                    Mod.Manipulations = new();
+                    Mod.Priority = 0;
+                    Mod.Description = "";
+                    Mod.Name = "";
+                    var D = Rythmos_Path + "\\Compressed\\" + Name;
+                    if (Directory.Exists(D)) Directory.Delete(D, true);
+                    Directory.CreateDirectory(D);
+                    Directory.CreateDirectory(D + "\\Mods");
+                    var Counter = new Dictionary<string, int>();
+                    var Maximum = 0;
+                    foreach (var Entry in Resources)
                     {
                         var Increased = false;
-                        foreach (var File_Entry in Entry.Value.ToList()) if (Entry.Key != File_Entry) if (Entry.Key.Contains(":\\"))
+                        foreach (var File_Entry in Entry.Value.ToList())
+                            if (Entry.Key != File_Entry) if (Entry.Key.Contains("\\"))
                                 {
-                                    Log.Information(Entry.Key);
                                     var New = Entry.Key.Split("\\")[^1];
                                     if (!Counter.ContainsKey(New)) Counter.Add(New, 0);
                                     if (!Increased)
@@ -561,24 +540,82 @@ namespace Rythmos.Handlers
                                     if (Counter[New] > Maximum)
                                     {
                                         Maximum = Counter[New];
-                                        Directory.CreateDirectory(D + $"\\Mods\\V{Maximum}");
+                                        Directory.CreateDirectory(D + $"\\Mods\\{Maximum}");
                                     }
-                                    File.Copy(Entry.Key, D + $"\\Mods\\V{Counter[New]}\\" + New, true);
-                                    Mod.Files.Add(File_Entry, $"V{Counter[New]}\\" + New);
+                                    if (New.EndsWith(".tex") && Compress)
+                                    {
+                                        var S = new FileInfo(Entry.Key).Length;
+                                        if (S > Threshold)
+                                        {
+                                            var Converted = D + $"\\Mods\\{Counter[New]}\\" + New.Replace(".tex", ".png");
+                                            await Converter.Invoke(Entry.Key, Converted, Penumbra.Api.Enums.TextureType.Png);
+                                            try
+                                            {
+                                                using var I = SixLabors.ImageSharp.Image.Load(Converted);
+                                                var B = Math.Sqrt(((double)Threshold) / ((double)S));
+                                                Log.Information($"Compressing {New}...");
+                                                I.Mutate(X => X.Resize((int)(X.GetCurrentSize().Width * B), (int)(X.GetCurrentSize().Height * B)));
+                                                var Temporary = D + $"\\Mods\\{Counter[New]}\\Temporary.png";
+                                                var Stream = new FileStream(Temporary, FileMode.Create);
+                                                I.Save(Stream, new SixLabors.ImageSharp.Formats.Png.PngEncoder());
+                                                I.Dispose();
+                                                Stream.Dispose();
+                                                await Converter.Invoke(Temporary, D + $"\\Mods\\{Counter[New]}\\" + New, Penumbra.Api.Enums.TextureType.AsIsTex, false);
+                                                File.Delete(Converted);
+                                                File.Delete(Temporary);
+                                            }
+                                            catch (Exception Error)
+                                            {
+                                                Log.Information(Error.Message);
+                                            }
+                                        }
+                                        else File.Copy(Entry.Key, D + $"\\Mods\\{Counter[New]}\\" + New, true);
+                                    }
+                                    else File.Copy(Entry.Key, D + $"\\Mods\\{Counter[New]}\\" + New, true);
+                                    Mod.Files.Add(File_Entry, $"{Counter[New]}\\" + New);
                                 }
                                 else Mod.FileSwaps.Add(File_Entry, Entry.Key);
                     }
+
+                    if (VFX_Resources != null)
+                    {
+                        Counter = new();
+                        Maximum = 0;
+                        foreach (var Entry in VFX_Resources)
+                        {
+                            var Increased = false;
+                            foreach (var File_Entry in Entry.Value.ToList()) if (Entry.Key != File_Entry) if (Entry.Key.Contains(":\\"))
+                                    {
+                                        Log.Information(Entry.Key);
+                                        var New = Entry.Key.Split("\\")[^1];
+                                        if (!Counter.ContainsKey(New)) Counter.Add(New, 0);
+                                        if (!Increased)
+                                        {
+                                            Counter[New]++;
+                                            Increased = true;
+                                        }
+                                        if (Counter[New] > Maximum)
+                                        {
+                                            Maximum = Counter[New];
+                                            Directory.CreateDirectory(D + $"\\Mods\\V{Maximum}");
+                                        }
+                                        File.Copy(Entry.Key, D + $"\\Mods\\V{Counter[New]}\\" + New, true);
+                                        Mod.Files.Add(File_Entry, $"V{Counter[New]}\\" + New);
+                                    }
+                                    else Mod.FileSwaps.Add(File_Entry, Entry.Key);
+                        }
+                    }
+                    File.WriteAllBytes(D + "\\Mods\\default_mod.json", Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(Mod, Formatting.None)));
+                    File.WriteAllBytes(D + "\\Configuration.json", Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new Mod_Configuration(Customize_Data, Glamourer_Data, Meta, Settings, null), Formatting.None)));
+                    if (File.Exists(D + ".zip")) File.Delete(D + ".zip");
+                    ZipFile.CreateFromDirectory(D, D + ".zip");
+                    Log.Information("A compressed pack has been created!");
                 }
-                File.WriteAllBytes(D + "\\Mods\\default_mod.json", Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(Mod, Formatting.None)));
-                File.WriteAllBytes(D + "\\Configuration.json", Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new Mod_Configuration(Customize_Data, Glamourer_Data, Meta, Settings, null), Formatting.None)));
-                if (File.Exists(D + ".zip")) File.Delete(D + ".zip");
-                ZipFile.CreateFromDirectory(D, D + ".zip");
-                Log.Information("A compressed pack has been created!");
-            }
-            catch (Exception Error)
-            {
-                Log.Information(Error.Message);
-            }
+                catch (Exception Error)
+                {
+                    Log.Information(Error.Message);
+                }
+            });
         }
 
         public static List<string> Traverse(ResourceNodeDto A)
@@ -588,11 +625,11 @@ namespace Rythmos.Handlers
             return Output;
         }
 
-        public static Task Pack(string Name, Mod_Configuration M, uint Type = 0)
+        public static Task Pack(string Name, Mod_Configuration M, uint Type = 0, bool Compress = false)
         {
             var Index = ID_Mapping[Name];
             var Resources = Get_Resources.Invoke(Index)[0];
-            return Task.Run(() =>
+            return Task.Run(async () =>
             {
                 Log.Information($"Packing ({Type}): " + Rythmos_Path + $"\\Compressed\\{Name}.zip");
                 if (Type == 0)
@@ -698,9 +735,9 @@ namespace Rythmos.Handlers
                                 if (!VFX_Resources.ContainsKey(Required_File)) VFX_Resources.Add(Required_File, new());
                                 VFX_Resources[Required_File].Add(Texture_Name);
                             }
-                    Compile_Mods(Name, Resources, M.Bones, M.Glamour, M.Meta, VFX_Resources);
+                    await Compile_Mods(Name, Resources, M.Bones, M.Glamour, M.Meta, VFX_Resources, Compress);
                 }
-                else Compile_Mods(Name, Resources, M.Bones, M.Glamour, M.Meta);
+                else await Compile_Mods(Name, Resources, M.Bones, M.Glamour, M.Meta, null, Compress);
             });
         }
         public static bool Unpack(string Name)
@@ -829,7 +866,7 @@ namespace Rythmos.Handlers
 
         public static void Redraw_Character(string Name) => Redraw.Invoke((int)ID_Mapping[Name]);
 
-        private static bool Update_Characters()
+        unsafe private static bool Update_Characters()
         {
             var Changed = false;
             try
@@ -897,7 +934,7 @@ namespace Rythmos.Handlers
             return Changed;
         }
 
-        public static void Update(IFramework F)
+        unsafe public static void Update(IFramework F)
         {
             try
             {

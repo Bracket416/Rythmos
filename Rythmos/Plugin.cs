@@ -42,7 +42,6 @@ public sealed class Plugin : IDalamudPlugin
             try
             {
                 Networking.Progress = "Uploading";
-                Log.Information(Characters.Rythmos_Path);
                 if (File.Exists(Characters.Rythmos_Path + $"\\Compressed\\{Name}.zip"))
                 {
                     Networking.Progress = "Uploading";
@@ -58,7 +57,7 @@ public sealed class Plugin : IDalamudPlugin
         });
     }
 
-    internal Task Packing(string Name, Characters.Mod_Configuration M, uint Type = 0, bool Upload = false)
+    internal Task Packing(string Name, uint Type = 0, bool Upload = false)
     {
         return Task.Run(async () =>
         {
@@ -77,7 +76,8 @@ public sealed class Plugin : IDalamudPlugin
                 else if (Type == 2) MainWindow.Micro_Packing = "Micro-Packing";
                 Framework.RunOnTick(async () =>
                 {
-                    await Characters.Pack(Name, M, Type);
+                    var M = Characters.Gather_Mods(Name);
+                    await Characters.Pack(Name, M, Type, Upload);
                     if (Type == 0)
                     {
                         MainWindow.Packing = "Pack";
@@ -128,12 +128,10 @@ public sealed class Plugin : IDalamudPlugin
         Characters.Party = Party;
         Characters.Rythmos_Path = Configuration.Path;
         Characters.Setup(I, Chat);
-        // You might normally want to embed resources and load them from the manifest stream
         ConfigWindow = new ConfigWindow(this);
         MainWindow.Log = Log;
         MainWindow = new MainWindow(this);
         MainWindow.ClientState = ClientState;
-        //if (Objects.Length > 0) Log.Information(Objects[0].EntityId + "");
         Framework.Update += Networking.Update;
         Framework.Update += Characters.Update;
 

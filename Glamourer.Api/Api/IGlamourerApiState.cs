@@ -46,12 +46,32 @@ public interface IGlamourerApiState
     /// <param name="flags"> The flags used for the application. Respects Once, Equipment, Customization and Lock (see <see cref="ApplyFlag"/>.) </param>
     /// <returns> ActorNotFound, InvalidKey, ActorNotHuman, Success. </returns>
     /// <remarks>
-    /// The player does not have to be currently available as long as he has a persisted Glamourer state.<br/>
-    /// Only players are checked for name equality, no NPCs.<br/>
-    /// If multiple players of the same name are found, all of them are manipulated.<br/>
-    /// Prefer to use the index-based function unless you need to get the state of someone currently unavailable.
+    ///   The player does not have to be currently available as long as he has a persisted Glamourer state.<br/>
+    ///   Only players are checked for name equality, no NPCs.<br/>
+    ///   If multiple players of the same name are found, all of them are manipulated.<br/>
+    ///   Prefer to use the index-based function unless you need to get the state of someone currently unavailable.
     /// </remarks>
     public GlamourerApiEc ApplyStateName(object applyState, string playerName, uint key, ApplyFlag flags);
+
+    /// <summary> Reapply the Glamourer state of an actor. </summary>
+    /// <param name="objectIndex"> The game object index of the actor to reapply. </param>
+    /// <param name="key"> A key to lock the state if necessary. </param>
+    /// <param name="flags"> The flags used for the application. Respects Once and Lock (see <see cref="ApplyFlag"/>.) </param>
+    /// <returns> ActorNotFound, InvalidKey, ActorNotHuman, Success. </returns>
+    public GlamourerApiEc ReapplyState(int objectIndex, uint key, ApplyFlag flags);
+
+    /// <summary> Reapply the Glamourer state of players. </summary>
+    /// <param name="playerName"> The name of the players to reapply. </param>
+    /// <param name="key"> A key to lock the state if necessary. </param>
+    /// <param name="flags"> The flags used for the application. Respects Once and Lock (see <see cref="ApplyFlag"/>.) </param>
+    /// <returns> ActorNotFound, InvalidKey, ActorNotHuman, Success. </returns>
+    /// <remarks>
+    ///   The player does not have to be currently available as long as he has a persisted Glamourer state.<br/>
+    ///   Only players are checked for name equality, no NPCs.<br/>
+    ///   If multiple players of the same name are found, all of them are manipulated.<br/>
+    ///   Prefer to use the index-based function unless you need to get the state of someone currently unavailable.
+    /// </remarks>
+    public GlamourerApiEc ReapplyStateName(string playerName, uint key, ApplyFlag flags);
 
     /// <summary> Revert the Glamourer state of an actor to Game state. </summary>
     /// <param name="objectIndex"> The game object index of the actor to be manipulated. </param>
@@ -65,11 +85,11 @@ public interface IGlamourerApiState
     /// <param name="key"> A key to unlock the state if necessary. </param>
     /// <param name="flags"> The flags used for the reversion. Respects Equipment and Customization (see <see cref="ApplyFlag"/>.) </param>
     /// <returns> ActorNotFound, InvalidKey, Success, NothingDone. </returns>
-    /// /// <remarks>
-    /// The player does not have to be currently available as long as he has a persisted Glamourer state.<br/>
-    /// Only players are checked for name equality, no NPCs.<br/>
-    /// If multiple players of the same name are found, all of them are reverted.<br/>
-    /// Prefer to use the index-based function unless you need to get the state of someone currently unavailable.
+    /// <remarks>
+    ///   The player does not have to be currently available as long as he has a persisted Glamourer state.<br/>
+    ///   Only players are checked for name equality, no NPCs.<br/>
+    ///   If multiple players of the same name are found, all of them are reverted.<br/>
+    ///   Prefer to use the index-based function unless you need to get the state of someone currently unavailable.
     /// </remarks>
     public GlamourerApiEc RevertStateName(string playerName, uint key, ApplyFlag flags);
 
@@ -79,6 +99,14 @@ public interface IGlamourerApiState
     /// <returns> ActorNotFound, InvalidKey, Success, NothingDone. </returns>
     public GlamourerApiEc UnlockState(int objectIndex, uint key);
 
+    /// <summary> Returns whether the Glamourer state of an actor has been locked and whether the supplied key can unlock it. </summary>
+    /// <param name="objectIndex"> The game object index of the actor to be checked. </param>
+    /// <param name="key"> A key to unlock the state. </param>
+    /// <param name="isLocked"> Whether the state is locked. </param>
+    /// <param name="canUnlock"> Whether the supplied key can unlock the state. </param>
+    /// <returns> ActorNotFound, InvalidState, Success. </returns>
+    public GlamourerApiEc CanUnlock(int objectIndex, uint key, out bool isLocked, out bool canUnlock);
+    
     /// <summary> Unlock the Glamourer state of players with a key. </summary>
     /// <param name="playerName"> The name of the players to be unlocked. </param>
     /// <param name="key"> A key to unlock the state. </param>
@@ -109,11 +137,11 @@ public interface IGlamourerApiState
     /// <param name="key"> A key to unlock the state if necessary. </param>
     /// <param name="flags"> The flags used for the reversion. Respects Once and Lock (see <see cref="ApplyFlag"/>.) </param>
     /// <returns> ActorNotFound, InvalidKey, Success, NothingDone. </returns>
-    /// /// <remarks>
-    /// The player does not have to be currently available as long as he has a persisted Glamourer state.<br/>
-    /// Only players are checked for name equality, no NPCs.<br/>
-    /// If multiple players of the same name are found, all of them are reverted.<br/>
-    /// Prefer to use the index-based function unless you need to get the state of someone currently unavailable.
+    /// <remarks>
+    ///   The player does not have to be currently available as long as he has a persisted Glamourer state.<br/>
+    ///   Only players are checked for name equality, no NPCs.<br/>
+    ///   If multiple players of the same name are found, all of them are reverted.<br/>
+    ///   Prefer to use the index-based function unless you need to get the state of someone currently unavailable.
     /// </remarks>
     public GlamourerApiEc RevertToAutomationName(string playerName, uint key, ApplyFlag flags);
 
@@ -128,4 +156,9 @@ public interface IGlamourerApiState
 
     /// <summary> Invoked when the player enters or leaves GPose (true => entered GPose, false => left GPose). </summary>
     public event Action<bool>? GPoseChanged;
+
+    /// <summary> An event that triggers when the auto-reload gear setting changes. </summary>
+    public event Action<bool>? AutoReloadGearChanged;
 }
+
+
