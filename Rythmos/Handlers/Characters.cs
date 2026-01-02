@@ -154,6 +154,8 @@ namespace Rythmos.Handlers
 
         private static bool Busy = false;
 
+        private static Dictionary<string, DateTime> Wait = new();
+
         unsafe private static Task<bool> Check_Draw(int Object_Index, System.Action Callback) => Networking.F.RunOnTick(() =>
         {
             var Visible = ((BattleChara*)Objects[Object_Index].Address)->DrawObject->IsVisible;
@@ -208,6 +210,11 @@ namespace Rythmos.Handlers
 
         public static string Get_Newest(string Name)
         {
+            var Last_Time = DateTime.MinValue;
+            if (Wait.ContainsKey(Name)) Last_Time = Wait[Name];
+            var Now = DateTime.Now;
+            if (Now.Subtract(Last_Time) < TimeSpan.FromSeconds(1)) return null;
+            Wait[Name] = Now;
             var Compressed_Path = Rythmos_Path + "\\Compressed";
             var Candidates = Directory.GetFiles(Compressed_Path).ToList().FindAll(X => X.Split(Compressed_Path)[^1].StartsWith("\\" + Name));
             if (Candidates.Count == 0) return null;
@@ -526,6 +533,32 @@ namespace Rythmos.Handlers
             return new Mod_Configuration("", "", "", Settings, null);
         }
 
+        private static bool ZIP_Equality(string First, string Second)
+        {
+            const int Buffer = 1048576;
+            using var First_Archive = ZipFile.OpenRead(First);
+            using var Second_Archive = ZipFile.OpenRead(Second);
+            var First_Entries = First_Archive.Entries.OrderBy(X => X.FullName).ToList();
+            var Second_Entires = Second_Archive.Entries.OrderBy(X => X.FullName).ToList();
+            if (First_Entries.Count != Second_Entires.Count) return false;
+            for (var I = 0; I < First_Entries.Count; I++)
+            {
+                if (First_Entries[I].FullName != Second_Entires[I].FullName || First_Entries[I].Length != Second_Entires[I].Length) return false;
+                using var First_Entry = First_Entries[I].Open();
+                using var Second_Entry = Second_Entires[I].Open();
+                var First_Buffer = new byte[Buffer];
+                var Second_Buffer = new byte[Buffer];
+                var First_Index = 0;
+                var Second_Index = 0;
+                while ((First_Index = First_Entry.Read(First_Buffer, 0, First_Buffer.Length)) > 0)
+                {
+                    Second_Index = Second_Entry.Read(Second_Buffer, 0, Second_Buffer.Length);
+                    if (First_Index != Second_Index) return false;
+                    for (var J = 0; J < First_Index; J++) if (First_Buffer[J] != Second_Buffer[J]) return false;
+                }
+            }
+            return true;
+        }
         public static Task<bool> Compile_Mods(string Name, Dictionary<string, HashSet<string>> Resources, string Customize_Data, string Glamourer_Data, string Meta, Dictionary<string, HashSet<string>>? VFX_Resources = null, bool Compress = false)
         {
             return Task.Run(async () =>
@@ -638,12 +671,12 @@ namespace Rythmos.Handlers
                     ZipFile.CreateFromDirectory(D, D + " 1.zip");
                     if (File.Exists(D + ".zip"))
                     {
-                        if (File.ReadAllBytes(D + ".zip") == File.ReadAllBytes(D + " 1.zip"))
+                        if (ZIP_Equality(D + ".zip", D + " 1.zip"))
                         {
                             File.Delete(D + " 1.zip");
                             return false;
                         }
-                        else File.Delete(D + ".zip");
+                        File.Delete(D + ".zip");
                     }
                     File.Move(D + " 1.zip", D + ".zip");
                     Log.Information("A compressed pack has been created!");
@@ -664,7 +697,7 @@ namespace Rythmos.Handlers
             return Output;
         }
 
-        public static Task Pack(string Name, Mod_Configuration M, uint Type = 0, bool Compress = false)
+        public static Task<bool> Pack(string Name, Mod_Configuration M, uint Type = 0, bool Compress = false)
         {
             var Index = ID_Mapping[Name];
             var Resources = Get_Resources.Invoke(Index)[0];

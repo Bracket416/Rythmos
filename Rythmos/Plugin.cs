@@ -77,7 +77,7 @@ public sealed class Plugin : IDalamudPlugin
                 Framework.RunOnTick(async () =>
                 {
                     var M = Characters.Gather_Mods(Name);
-                    await Characters.Pack(Name, M, Type, Upload);
+                    var Different = await Characters.Pack(Name, M, Type, Upload);
                     if (Type == 0)
                     {
                         MainWindow.Packing = "Pack";
@@ -87,7 +87,7 @@ public sealed class Plugin : IDalamudPlugin
                         MainWindow.Mini_Packing = "Mini-Pack";
                     }
                     else if (Type == 2) MainWindow.Micro_Packing = "Micro-Pack";
-                    if (Upload) await Uploading(Name);
+                    if (Upload && Different) await Uploading(Name);
                     MainWindow.General_Packing = false;
                 });
             }
