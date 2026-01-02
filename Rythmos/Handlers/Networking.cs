@@ -55,7 +55,7 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
-        public static string Version = "0.2.9.2";
+        public static string Version = "0.2.9.3";
 
         public static Task Send(byte[] Data, byte Type)
         {

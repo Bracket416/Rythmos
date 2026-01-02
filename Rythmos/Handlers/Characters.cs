@@ -83,7 +83,7 @@ namespace Rythmos.Handlers
             }
         }
 
-        private static int Threshold = 5000000;
+        private static int Threshold = 4 * 1024 * 1024;
 
         private static Dictionary<string, Mod_Configuration> Mods = new();
 
@@ -548,13 +548,19 @@ namespace Rythmos.Handlers
                                         if (S > Threshold)
                                         {
                                             var Converted = D + $"\\Mods\\{Counter[New]}\\" + New.Replace(".tex", ".png");
-                                            await Converter.Invoke(Entry.Key, Converted, Penumbra.Api.Enums.TextureType.Png);
+                                            await Converter.Invoke(Entry.Key, Converted, Penumbra.Api.Enums.TextureType.Png, false);
                                             try
                                             {
                                                 using var I = SixLabors.ImageSharp.Image.Load(Converted);
-                                                var B = Math.Sqrt(((double)Threshold) / ((double)S));
                                                 Log.Information($"Compressing {New}...");
-                                                I.Mutate(X => X.Resize((int)(X.GetCurrentSize().Width * B), (int)(X.GetCurrentSize().Height * B)));
+                                                I.Mutate(X =>
+                                                {
+                                                    if (I.Width >= I.Height)
+                                                    {
+                                                        X.Resize(1024, (int)Math.Round(((((double)I.Height) / ((double)I.Width)) * 1024)));
+                                                    }
+                                                    else X.Resize((int)Math.Round(((((double)I.Width) / ((double)I.Height)) * 1024)), 1024);
+                                                });
                                                 var Temporary = D + $"\\Mods\\{Counter[New]}\\Temporary.png";
                                                 var Stream = new FileStream(Temporary, FileMode.Create);
                                                 I.Save(Stream, new SixLabors.ImageSharp.Formats.Png.PngEncoder());
