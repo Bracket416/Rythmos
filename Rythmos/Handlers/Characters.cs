@@ -28,6 +28,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Unicode;
+using System.Threading;
 using System.Threading.Tasks;
 namespace Rythmos.Handlers
 {
@@ -151,6 +152,19 @@ namespace Rythmos.Handlers
 
         public static ConvertTextureFile Converter;
 
+        private static bool Busy = false;
+
+        unsafe private static Task<bool> Check_Draw(int Object_Index, System.Action Callback) => Networking.F.RunOnTick(() =>
+        {
+            var Visible = ((BattleChara*)Objects[Object_Index].Address)->DrawObject->IsVisible;
+            if (Visible)
+            {
+                Callback();
+                Log.Information("Done!");
+            }
+            return Visible;
+        });
+
         public static void Setup(IDalamudPluginInterface I, IChatGui Chat)
         {
             try
@@ -169,9 +183,18 @@ namespace Rythmos.Handlers
                 Resolver = new ResolvePaths(I);
                 Penumbra_Path = new GetModDirectory(I).Invoke();
                 Converter = new ConvertTextureFile(I);
-                Redraw_Handler = GameObjectRedrawn.Subscriber(I, (nint A, int Object_Index) =>
+                Redraw_Handler = GameObjectRedrawn.Subscriber(I, async (nint A, int Object_Index) =>
                 {
-                    if (Networking.C.Sync_Penumbra && Object_Index == 0) Task.Delay(1000).ContinueWith(_ => Networking.F.RunOnTick(() => P.Packing(Networking.Name, 2, true)));
+                    if (Networking.C.Sync_Penumbra && Object_Index == 0 && !Busy)
+                    {
+                        Busy = true;
+                        var Invisible = true;
+                        while (Invisible)
+                        {
+                            Invisible = !(await Check_Draw(Object_Index, () => P.Packing(Networking.Name, 2, true).ContinueWith(_ => Busy = false)));
+                            await Task.Delay(250);
+                        }
+                    }
                 });
             }
             catch (Exception Error)
@@ -503,7 +526,7 @@ namespace Rythmos.Handlers
             return new Mod_Configuration("", "", "", Settings, null);
         }
 
-        public static Task Compile_Mods(string Name, Dictionary<string, HashSet<string>> Resources, string Customize_Data, string Glamourer_Data, string Meta, Dictionary<string, HashSet<string>>? VFX_Resources = null, bool Compress = false)
+        public static Task<bool> Compile_Mods(string Name, Dictionary<string, HashSet<string>> Resources, string Customize_Data, string Glamourer_Data, string Meta, Dictionary<string, HashSet<string>>? VFX_Resources = null, bool Compress = false)
         {
             return Task.Run(async () =>
             {
@@ -582,7 +605,6 @@ namespace Rythmos.Handlers
                                 }
                                 else Mod.FileSwaps.Add(File_Entry, Entry.Key);
                     }
-
                     if (VFX_Resources != null)
                     {
                         Counter = new();
@@ -613,14 +635,25 @@ namespace Rythmos.Handlers
                     }
                     File.WriteAllBytes(D + "\\Mods\\default_mod.json", Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(Mod, Formatting.None)));
                     File.WriteAllBytes(D + "\\Configuration.json", Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new Mod_Configuration(Customize_Data, Glamourer_Data, Meta, Settings, null), Formatting.None)));
-                    if (File.Exists(D + ".zip")) File.Delete(D + ".zip");
-                    ZipFile.CreateFromDirectory(D, D + ".zip");
+                    ZipFile.CreateFromDirectory(D, D + " 1.zip");
+                    if (File.Exists(D + ".zip"))
+                    {
+                        if (File.ReadAllBytes(D + ".zip") == File.ReadAllBytes(D + " 1.zip"))
+                        {
+                            File.Delete(D + " 1.zip");
+                            return false;
+                        }
+                        else File.Delete(D + ".zip");
+                    }
+                    File.Move(D + " 1.zip", D + ".zip");
                     Log.Information("A compressed pack has been created!");
                 }
                 catch (Exception Error)
                 {
                     Log.Information(Error.Message);
+                    return false;
                 }
+                return true;
             });
         }
 
@@ -635,7 +668,7 @@ namespace Rythmos.Handlers
         {
             var Index = ID_Mapping[Name];
             var Resources = Get_Resources.Invoke(Index)[0];
-            return Task.Run(async () =>
+            return Task<bool>.Run(async () =>
             {
                 Log.Information($"Packing ({Type}): " + Rythmos_Path + $"\\Compressed\\{Name}.zip");
                 if (Type == 0)
@@ -741,9 +774,10 @@ namespace Rythmos.Handlers
                                 if (!VFX_Resources.ContainsKey(Required_File)) VFX_Resources.Add(Required_File, new());
                                 VFX_Resources[Required_File].Add(Texture_Name);
                             }
-                    await Compile_Mods(Name, Resources, M.Bones, M.Glamour, M.Meta, VFX_Resources, Compress);
+                    return await Compile_Mods(Name, Resources, M.Bones, M.Glamour, M.Meta, VFX_Resources, Compress);
                 }
-                else await Compile_Mods(Name, Resources, M.Bones, M.Glamour, M.Meta, null, Compress);
+                else return await Compile_Mods(Name, Resources, M.Bones, M.Glamour, M.Meta, null, Compress);
+                return true;
             });
         }
         public static bool Unpack(string Name)
