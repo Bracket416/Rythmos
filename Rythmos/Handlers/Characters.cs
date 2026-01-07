@@ -1119,10 +1119,7 @@ namespace Rythmos.Handlers
                     }
                 }
             }
-            catch (Exception Error)
-            {
-                Log.Error("Character Update: " + Error.Message);
-            }
+            catch (Exception Error) { Log.Error("Character Update: " + Error.Message); }
         }
 
         public static void Dispose()
