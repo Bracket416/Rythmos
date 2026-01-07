@@ -55,7 +55,7 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
-        public static string Version = "0.2.9.4";
+        public static string Version = "0.2.9.5";
 
         public static Task Send(byte[] Data, byte Type)
         {
@@ -382,7 +382,7 @@ namespace Rythmos.Handlers
             if (!Client.Connected && !Connecting && Characters.Client.LocalPlayer is not null)
             {
                 Connecting = true;
-                Log.Information("Connecting!");
+                //Log.Information("Connecting!");
                 try
                 {
                     Progress = "Upload Pack";
@@ -412,7 +412,7 @@ namespace Rythmos.Handlers
                 }
                 catch (Exception Error)
                 {
-                    Log.Error("Connect: " + Error.Message);
+                    //Log.Error("Connect: " + Error.Message);
                 }
                 Connecting = false;
             }
@@ -450,13 +450,13 @@ namespace Rythmos.Handlers
                             //Log.Information("Trying to connect!");
                             Connect();
                         }
-                        else if (!Downloading) Networking.Send(Array.Empty<byte>(), 3);
+                        else Networking.Send(Array.Empty<byte>(), 3);
                         T = New_T;
                     }
                 }
                 catch (Exception Error)
                 {
-                    Log.Error("Update Connecting: " + Error.Message);
+                    //Log.Error("Update Connecting: " + Error.Message);
                 }
             }
         }
