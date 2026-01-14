@@ -11,6 +11,8 @@ public class Configuration : IPluginConfiguration
 
     public string Player = "";
 
+    public bool Pack_Glamourer = true;
+
     public bool Sync_Glamourer = false;
 
     public bool Experimental = false;

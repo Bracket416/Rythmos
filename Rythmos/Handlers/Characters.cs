@@ -440,7 +440,6 @@ namespace Rythmos.Handlers
             var Output = new Dictionary<string, string>();
             try
             {
-                Log.Information("Parsing " + Name + ".");
                 var Manipulations = new List<Tuple<int, string>>();
                 var Path = Rythmos_Path + $"\\Mods\\{Name}\\" + Settings.Item1;
                 var Priority = Settings.Item2;
@@ -558,7 +557,7 @@ namespace Rythmos.Handlers
                                 Log.Information($"The collection is {C}.");
                                 var S = Settings_Getter.Invoke(C);
                                 foreach (var Mod in S.Item2.Keys) if (S.Item2[Mod].Item1) Settings.Add(Mod, new Mod_Entry(Mod, S.Item2[Mod].Item2, S.Item2[Mod].Item3));
-                                return new Mod_Configuration(Customize.Pack_Bones(O.ObjectIndex), Glamour.Pack(O.ObjectIndex), Get_Meta.Invoke(O.ObjectIndex), Settings, null);
+                                return new Mod_Configuration(Customize.Pack_Bones(O.ObjectIndex), Networking.C.Pack_Glamourer ? Glamour.Pack(O.ObjectIndex) : "", Get_Meta.Invoke(O.ObjectIndex), Settings, null);
                             }
                         }
                 return new Mod_Configuration("", "", "", Settings, null);
@@ -959,11 +958,11 @@ namespace Rythmos.Handlers
 
         public static void Set_Glamour(string Name, string Data)
         {
-            if (Data != null) if (Data.Length > 2 && Name != Networking.Name)
-                {
-                    Glamours[Name] = Data;
-                    if (ID_Mapping.ContainsKey(Name)) if (!Glamour.Set(ID_Mapping[Name], Data)) Recustomize.Add(Name);
-                }
+            if (Data != null && Name != Networking.Name)
+            {
+                Glamours[Name] = Data;
+                if (ID_Mapping.ContainsKey(Name)) if (!(Data.Length > 2 ? Glamour.Set(ID_Mapping[Name], Data) : Glamour.Revert(ID_Mapping[Name]))) Recustomize.Add(Name);
+            }
         }
 
         private static void Disable(string Name)
@@ -1061,6 +1060,7 @@ namespace Rythmos.Handlers
                     }
                     else if (Objects.LocalPlayer is not null)
                     {
+                        var Available = !((BattleChara*)Objects.LocalPlayer.Address)->InCombat;
                         if (Glamour.Ready)
                         {
                             foreach (var O in Objects)
@@ -1078,7 +1078,7 @@ namespace Rythmos.Handlers
                         }
                         var New_T = TimeProvider.System.GetTimestamp();
                         List<string> Party_Friends = [];
-                        if (New_T - Background_T > 10000000)
+                        if (New_T - Background_T > 10000000 && Available)
                         {
                             var Proxy = InfoProxyCrossRealm.Instance();
                             var Party_Members = new List<string>();
@@ -1097,14 +1097,14 @@ namespace Rythmos.Handlers
                                         }
                                 }
                         }
-                        if (!((BattleChara*)Objects.LocalPlayer.Address)->InCombat) Update_Characters();
+                        if (Available) Update_Characters();
                         if (Glamour.Ready)
                         {
                             foreach (var Setting in Glamour_Buffer) if (ID_Mapping.ContainsKey(Setting.Key)) Set_Glamour(Setting.Key, Setting.Value);
                             Glamour_Buffer = new Dictionary<string, string>(Glamour_Buffer.Where(X => !ID_Mapping.ContainsKey(X.Key)));
                         }
                         var Everyone = Networking.C.Friends.FindAll(X => Entities.Contains(X) || Party_Friends.Contains(X));
-                        if (!((BattleChara*)Objects.LocalPlayer.Address)->InCombat && !Networking.Downloading && New_T - Request_T > 100000000) foreach (var Friend in Everyone) if (File_Time_Mapping.ContainsKey(Friend) && Server_Time_Mapping.ContainsKey(Friend) ? File_Time_Mapping[Friend] < Server_Time_Mapping[Friend] : Server_Time_Mapping.ContainsKey(Friend) && (Locked.ContainsKey(Friend) ? !Locked[Friend] : true))
+                        if (Available && !Networking.Downloading && New_T - Request_T > 100000000) foreach (var Friend in Everyone) if (File_Time_Mapping.ContainsKey(Friend) && Server_Time_Mapping.ContainsKey(Friend) ? File_Time_Mapping[Friend] < Server_Time_Mapping[Friend] : Server_Time_Mapping.ContainsKey(Friend) && (Locked.ContainsKey(Friend) ? !Locked[Friend] : true))
                                 {
                                     Log.Information($"Requesting {Friend}!");
                                     Request_T = New_T;

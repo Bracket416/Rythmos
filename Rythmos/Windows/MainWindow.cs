@@ -83,6 +83,10 @@ public class MainWindow : Window, IDisposable
                     }
                     if (Characters.Rythmos_Path.Length > 0)
                     {
+                        var Previous = P.Configuration.Pack_Glamourer;
+                        ImGui.Spacing();
+                        ImGui.Checkbox($"Pack Glamourer##Rythmos Button", ref P.Configuration.Pack_Glamourer);
+                        if (Previous != P.Configuration.Pack_Glamourer) P.Configuration.Save();
                         ImGui.Spacing();
                         Add = false;
                         ImGui.Checkbox($"{Packing}##Rythmos Button", ref Add);
@@ -100,7 +104,7 @@ public class MainWindow : Window, IDisposable
                         ImGui.Checkbox($"{Networking.Progress}##Rythmos Button", ref Add);
                         if (Add && !General_Packing && Networking.Progress == "Upload Pack") P.Uploading(Networking.Name);
                         Add = false;
-                        var Previous = P.Configuration.Sync_Glamourer;
+                        Previous = P.Configuration.Sync_Glamourer;
                         ImGui.Spacing();
                         ImGui.Checkbox($"Sync Glamourer##Rythmos Syncing", ref P.Configuration.Sync_Glamourer);
                         if (Previous != P.Configuration.Sync_Glamourer)

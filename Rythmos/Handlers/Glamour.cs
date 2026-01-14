@@ -123,14 +123,15 @@ namespace Rythmos.Handlers
             else Setup(Interface);
         }
 
-        public static void Revert(ushort Index)
+        public static bool Revert(ushort Index)
         {
             if (Ready)
             {
                 try
                 {
                     Revert_State.Invoke(Index, 416);
-                    Handling.Remove(Index);
+                    Unlock(Index);
+                    return true;
                 }
                 catch (Exception Error)
                 {
@@ -139,6 +140,7 @@ namespace Rythmos.Handlers
                 }
             }
             else Setup(Interface);
+            return false;
         }
 
         public static void Dispose()
