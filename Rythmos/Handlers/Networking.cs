@@ -55,7 +55,7 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
-        public static string Version = "0.2.9.6";
+        public static string Version = "0.2.9.7";
 
         public static Task Send(byte[] Data, byte Type)
         {
@@ -270,7 +270,7 @@ namespace Rythmos.Handlers
                                                             {
                                                                 try
                                                                 {
-                                                                    ZipFile.ExtractToDirectory(File_Name, Rythmos_Path + "\\Mods\\" + Character_Name + "\\" + File_Name.Split("\\")[^1].Split(".zip")[0]);
+                                                                    ZipFile.ExtractToDirectory(File_Name, Rythmos_Path + "\\Mods\\" + Character_Name + "\\" + File_Name.Split("\\")[^1].Split(".zip")[0], true);
                                                                 }
                                                                 catch (Exception Error)
                                                                 {
