@@ -55,7 +55,7 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
-        public static string Version = "0.2.9.7";
+        public static string Version = "0.2.9.8";
 
         public static Task Send(byte[] Data, byte Type)
         {
@@ -274,6 +274,14 @@ namespace Rythmos.Handlers
                                                                 }
                                                                 catch (Exception Error)
                                                                 {
+                                                                    try
+                                                                    {
+                                                                        File.Delete(File_Name);
+                                                                    }
+                                                                    catch (Exception Deletion_Error)
+                                                                    {
+                                                                        Log.Error("Request Unzipping Deletion: " + Deletion_Error.Message);
+                                                                    }
                                                                     Log.Error("Request Unzipping: " + Error.Message);
                                                                     Part -= 1;
                                                                     Problem = true;
