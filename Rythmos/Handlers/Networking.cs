@@ -55,7 +55,7 @@ namespace Rythmos.Handlers
 
         private static string IP = null;
 
-        public static string Version = "0.2.9.8";
+        public static string Version = "0.2.9.9";
 
         public static Task Send(byte[] Data, byte Type)
         {
@@ -191,12 +191,9 @@ namespace Rythmos.Handlers
                                                         {
                                                             if (Characters.Unpack(File_Name)) F.RunOnTick(() =>
                                                                 {
-                                                                    if (Characters.ID_Mapping.ContainsKey(File_Name))
-                                                                    {
-                                                                        Characters.Glamours.Remove(File_Name);
-                                                                        Characters.Remove_Collection(Character_Name);
-                                                                        Characters.Set_Collection(Characters.ID_Mapping[File_Name]);
-                                                                    }
+                                                                    Characters.Glamours.Remove(File_Name);
+                                                                    Characters.Remove_Collection(Character_Name);
+                                                                    if (Characters.ID_Mapping.ContainsKey(File_Name)) Characters.Set_Collection(Characters.ID_Mapping[File_Name]);
                                                                     Characters.File_Time_Mapping[File_Name] = Characters.Server_Time_Mapping[File_Name];
                                                                 });
                                                         }
@@ -291,26 +288,23 @@ namespace Rythmos.Handlers
                                                             {
                                                                 var Configuration = Rythmos_Path + $"\\Parts\\{Character_Name}\\Configuration.json";
                                                                 File.Copy(Configuration, Rythmos_Path + $"\\Mods\\{Character_Name}\\Configuration.json");
-                                                                Characters.File_Time_Mapping[Character_Name] = new DateTimeOffset(File.GetLastWriteTimeUtc(Rythmos_Path + $"\\Mods\\{Character_Name}\\Configuration.json")).ToUnixTimeMilliseconds();
                                                                 Networking.Send(UTF8.GetBytes(Character_Name), 5);
                                                                 Characters.Locked[Character_Name] = false;
-                                                                try
+                                                                F.RunOnTick(() =>
                                                                 {
-                                                                    F.RunOnTick(() =>
+                                                                    try
                                                                     {
-                                                                        if (Characters.ID_Mapping.ContainsKey(Character_Name))
-                                                                        {
-                                                                            Characters.Glamours.Remove(Character_Name);
-                                                                            Characters.Remove_Collection(Character_Name);
-                                                                            Characters.Set_Collection(Characters.ID_Mapping[Character_Name]);
-                                                                        }
-                                                                        Characters.File_Time_Mapping[Character_Name] = Characters.Server_Time_Mapping[Character_Name];
-                                                                    });
-                                                                }
-                                                                catch (Exception Error)
-                                                                {
-                                                                    Log.Error("Request Unpacking: " + Error.Message);
-                                                                }
+                                                                        Characters.Glamours.Remove(Character_Name);
+                                                                        Characters.Remove_Collection(Character_Name);
+                                                                        if (Characters.ID_Mapping.ContainsKey(Character_Name)) Characters.Set_Collection(Characters.ID_Mapping[Character_Name]);
+                                                                        Characters.File_Time_Mapping[Character_Name] = new DateTimeOffset(File.GetLastWriteTimeUtc(Rythmos_Path + $"\\Mods\\{Character_Name}\\Configuration.json")).ToUnixTimeMilliseconds();
+                                                                        //Characters.File_Time_Mapping[Character_Name] = Characters.Server_Time_Mapping[Character_Name];
+                                                                    }
+                                                                    catch (Exception Error)
+                                                                    {
+                                                                        Log.Error("Request Unpacking: " + Error.Message);
+                                                                    }
+                                                                });
                                                                 Downloading = false;
                                                                 Started = false;
                                                                 Download_Progress = "";

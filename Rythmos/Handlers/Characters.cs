@@ -158,6 +158,8 @@ namespace Rythmos.Handlers
 
         private static Dictionary<string, DateTime> Collection_Wait = new();
 
+        private static bool Available = false;
+
         unsafe private static Task<bool> Check_Draw(int Object_Index, System.Action Callback) => Networking.F.RunOnTick(() =>
         {
             var Visible = ((BattleChara*)Objects[Object_Index].Address)->DrawObject->IsVisible;
@@ -320,7 +322,7 @@ namespace Rythmos.Handlers
                 Log.Information($"Reassignment of {Name}: " + Collection_Assigner.Invoke(Collection_Mapping[Name], (int)ID_Mapping[Name]).ToString(), true);
                 return true;
             }
-            else if (false) // This is for testing.
+            else if (Available)
             {
                 var Last_Time = DateTime.MinValue;
                 if (Collection_Wait.ContainsKey(Name)) Last_Time = Collection_Wait[Name];
@@ -336,6 +338,7 @@ namespace Rythmos.Handlers
                             Enable(Name);
                             return true;
                         }
+                        else Log.Information($"{Name}'s collection is properly assigned.");
                     }
                     catch (Exception Error)
                     {
@@ -1060,7 +1063,7 @@ namespace Rythmos.Handlers
                     }
                     else if (Objects.LocalPlayer is not null)
                     {
-                        var Available = !((BattleChara*)Objects.LocalPlayer.Address)->InCombat;
+                        Available = !((BattleChara*)Objects.LocalPlayer.Address)->InCombat;
                         if (Glamour.Ready)
                         {
                             foreach (var O in Objects)
